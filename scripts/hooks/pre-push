@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Defensive pre-push hook: mirrors CI for the Bun + Biome + TS monorepo.
+#
+# Runs lint + typecheck + tests when the scaffolding is present, and no-ops
+# gracefully with a message otherwise. The product scaffolding (package.json,
+# build scripts, tests) is added later per the plan; this hook starts enforcing
+# the moment those land. Activate once per clone with:
+#   git config core.hooksPath scripts/hooks
+set -euo pipefail
+
+if ! command -v bun >/dev/null 2>&1; then
+  echo "pre-push: bun not installed; skipping local CI mirror"
+  exit 0
+fi
+
+if [ ! -f package.json ]; then
+  echo "pre-push: no package.json yet; skipping local CI mirror"
+  exit 0
+fi
+
+# Dependency-free probe for a defined npm script.
+has_script() {
+  grep -Eq "\"$1\"[[:space:]]*:" package.json 2>/dev/null
+}
+
+for step in lint typecheck; do
+  if has_script "$step"; then
+    echo "pre-push: bun run $step"
+    bun run "$step"
+  else
+    echo "pre-push: no '$step' script defined yet; skipping"
+  fi
+done
+
+if has_script test; then
+  echo "pre-push: bun run test"
+  bun run test
+elif [ -n "$(git ls-files '*.test.ts' '*.test.tsx' '*.spec.ts' '*.test.js' 2>/dev/null)" ]; then
+  echo "pre-push: bun test"
+  bun test
+else
+  echo "pre-push: no test script or test files yet; skipping tests"
+fi
+
+echo "pre-push: all present checks passed."

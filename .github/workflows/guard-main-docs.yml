@@ -1,0 +1,20 @@
+# Caller for the centralized guard-main-docs reusable workflow.
+#
+# Blocks engineering docs (docs/plans, docs/solutions, docs/brainstorms,
+# docs/reviews, and similar dev-only assets) from being merged into main.
+# Only needs pull-requests: read.
+#
+# The reusable ref is SHA-pinned; the trailing comment records the branch and
+# resolution date. Refresh recipe: `gh api repos/brettdavies/.github/commits/main --jq .sha`.
+name: Guard main from engineering docs
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  guard-docs:
+    uses: brettdavies/.github/.github/workflows/guard-main-docs.yml@c22bf91089fc83a82f641aa6b1ea6ff223d8d3e1 # main as of 2026-07-06

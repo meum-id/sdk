@@ -1,0 +1,23 @@
+# Caller for the reusable guard-release-branch workflow.
+#
+# Rejects PRs to main whose head branch doesn't start with `release/`. Keeps
+# `dev` off the list of PR heads, which is what makes delete-branch-on-merge
+# safe to leave on without risking origin/dev.
+#
+# Default prefix `release/` is supplied by the reusable workflow; pass
+# `with: prefix: <other>` to override.
+#
+# The reusable ref is SHA-pinned; the trailing comment records the branch and
+# resolution date. Refresh recipe: `gh api repos/brettdavies/.github/commits/main --jq .sha`.
+name: Guard release branch pattern
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  guard-release:
+    uses: brettdavies/.github/.github/workflows/guard-release-branch.yml@c22bf91089fc83a82f641aa6b1ea6ff223d8d3e1 # main as of 2026-07-06

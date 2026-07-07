@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Defensive pre-commit hook: Biome format + lint on staged files.
+#
+# No-ops gracefully until bun, package.json, and a Biome config are present.
+# The product scaffolding is added later per the plan; this hook starts
+# enforcing the moment the toolchain lands. Activate once per clone with:
+#   git config core.hooksPath scripts/hooks
+set -euo pipefail
+
+if ! command -v bun >/dev/null 2>&1; then
+  echo "pre-commit: bun not installed; skipping Biome checks"
+  exit 0
+fi
+
+if [ ! -f package.json ]; then
+  echo "pre-commit: no package.json yet; skipping Biome checks"
+  exit 0
+fi
+
+if ! ls biome.json biome.jsonc >/dev/null 2>&1; then
+  echo "pre-commit: no Biome config yet; skipping Biome checks"
+  exit 0
+fi
+
+mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACMR -- \
+  '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.json' '*.jsonc')
+
+if [ ${#staged[@]} -eq 0 ]; then
+  echo "pre-commit: no staged JS/TS/JSON files; nothing to check"
+  exit 0
+fi
+
+echo "pre-commit: biome check --write on ${#staged[@]} staged file(s)"
+bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true "${staged[@]}"
+
+git add -- "${staged[@]}"

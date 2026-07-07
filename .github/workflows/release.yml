@@ -1,0 +1,81 @@
+# Release skeleton: publish the workspace packages to npm on a version tag.
+#
+# Fires on an annotated `v*` tag push (after the release/vX.Y.Z -> main PR
+# merges). Builds and publishes each package under packages/* to the @meum
+# scope with public access.
+#
+# Defensive by design: the product scaffolding (package.json, workspace
+# packages, build scripts) is added later by another agent per the plan. Every
+# step guards on the relevant file and no-ops with a message when the
+# scaffolding is absent, so a tag push against the bare repo is a green no-op.
+#
+# TODO before first real publish:
+#   - Add the NPM_TOKEN secret (npm automation token, publish scope for @meum):
+#       `gh secret set NPM_TOKEN --repo meum-id/sdk`
+#     or switch to npm Trusted Publishing (OIDC) and set `id-token: write` on
+#     the job, dropping NODE_AUTH_TOKEN.
+#   - Confirm each package.json carries `"publishConfig": {"access": "public"}`
+#     and the correct `"version"` matching the tag.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish packages to npm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      - name: Setup Node (npm registry auth)
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then
+            bun install --frozen-lockfile
+          else
+            echo "scaffolding not present yet (no package.json); skipping install"
+          fi
+
+      - name: Build packages
+        run: |
+          if [ -f package.json ]; then
+            bun run build
+          else
+            echo "scaffolding not present yet (no package.json); skipping build"
+          fi
+
+      - name: Publish packages to npm
+        env:
+          # TODO: add the NPM_TOKEN secret (see header). Publish 401s without it.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ ! -d packages ]; then
+            echo "scaffolding not present yet (no packages/ directory); skipping publish"
+            exit 0
+          fi
+          for pkg in packages/*/; do
+            if [ -f "${pkg}package.json" ]; then
+              echo "Publishing ${pkg}"
+              npm publish --access public --workspace "${pkg}" || {
+                echo "publish failed for ${pkg}"
+                exit 1
+              }
+            fi
+          done

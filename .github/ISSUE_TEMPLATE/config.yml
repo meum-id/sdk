@@ -1,0 +1,6 @@
+# Issue-template routing config.
+#
+# Disables the blank-issue option so all issues funnel through a real template.
+# No contact_links are configured yet: this repo has no upstream tracker to
+# redirect to. Add contact_links here if a delegated dependency surfaces.
+blank_issues_enabled: false

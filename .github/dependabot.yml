@@ -1,0 +1,45 @@
+# Dependabot configuration.
+#
+# Two ecosystems: npm for the workspace package dependencies, github-actions
+# for workflow actions. Both scan weekly on Monday mornings. npm minor + patch
+# updates group into one PR per week; major updates open individually because
+# they need review.
+#
+# `target-branch: dev` is non-negotiable on every ecosystem block. Without it,
+# Dependabot defaults to `main` and the PR fails the dev -> release/* -> main
+# flow that guard-release-branch.yml enforces. Retargeting after the fact
+# orphans-and-closes the PR irreversibly.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 5
+    reviewers:
+      - brettdavies
+    labels:
+      - dependencies
+    groups:
+      npm-minor-patch:
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: github-actions
+    directory: "/"
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 3
+    reviewers:
+      - brettdavies
+    labels:
+      - dependencies
+      - github-actions
