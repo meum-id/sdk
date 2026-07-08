@@ -1,0 +1,7 @@
+# Hoisted linker: with Bun's default isolated installs, a repo-root `bun test`
+# fails to resolve workspace deps (@meum/*) from sibling-package test files.
+[install]
+linker = "hoisted"
+
+[test]
+coverage = false
