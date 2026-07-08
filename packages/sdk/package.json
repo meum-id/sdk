@@ -1,0 +1,26 @@
+{
+  "name": "@meum/sdk",
+  "version": "0.1.0",
+  "description": "Relying-party client for the Meum verification API: session creation, deep links, offline receipt verification",
+  "license": "Apache-2.0",
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/meum-id/sdk",
+    "directory": "packages/sdk"
+  },
+  "dependencies": {
+    "@meum/contracts": "workspace:*",
+    "@meum/verify": "workspace:*"
+  }
+}
