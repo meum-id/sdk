@@ -29,6 +29,13 @@ git clone --branch sdk-v0.1.0 --depth 1 https://github.com/meum-id/sdk.git vendo
     "@meum/contracts": "file:./vendor/meum-sdk/packages/contracts",
     "@meum/verify": "file:./vendor/meum-sdk/packages/verify",
     "@meum/sdk": "file:./vendor/meum-sdk/packages/sdk"
+  },
+  // Required: the vendored packages reference each other with the
+  // `workspace:*` protocol, which Bun cannot resolve outside the vendored
+  // workspace. The overrides redirect those specs to the same file: paths.
+  "overrides": {
+    "@meum/contracts": "file:./vendor/meum-sdk/packages/contracts",
+    "@meum/verify": "file:./vendor/meum-sdk/packages/verify"
   }
 }
 ```

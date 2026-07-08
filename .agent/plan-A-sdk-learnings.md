@@ -29,6 +29,8 @@ Working notes for the U1–U4 build of `@meum/contracts`, `@meum/verify`, `@meum
 - **TS 5.9 `Uint8Array<ArrayBufferLike>` vs `BufferSource`:** WebCrypto params reject the generic default. Fix: `base64UrlToBytes` returns `Uint8Array<ArrayBuffer>`.
 - **Miniflare smoke test** bundles the mock Worker with `Bun.build` (target browser, esm) and feeds the output to `new Miniflare({ modules: true, script })` — no scriptPath/temp file needed. The Bun-serve trailer in the mock Worker guards on `globalThis.Bun` + `import.meta.main`, so it parses clean under workerd.
 - **`release.yml` stays inert:** it triggers on `v*` tags; the freeze tag is `sdk-v0.1.0`, which doesn't match the glob, and no `NPM_TOKEN` secret exists. Both conditions hold per decision-log entry 52.
+- **`file:` consumption needs `overrides`:** a consumer's `bun install` fails on the vendored packages' `workspace:*` specs (`@meum/contracts@workspace:* failed to resolve`) even after installing the vendored workspace itself. Fix: the consumer's `package.json` adds an `overrides` block redirecting `@meum/contracts` and `@meum/verify` to the same `file:` paths (README documents the full recipe). Verified end-to-end from a scratch consumer: clean install, `verify()` accepts the valid fixture and rejects the wrong-aud fixture, `MeumClient.deepLink()`/`verifyReceipt()` work with an injected fetch.
+- **Tag re-cut:** `sdk-v0.1.0` was re-pointed from the Phase-A1 squash commit to the merge that adds the `overrides` install recipe, before any downstream track had consumed or been notified of the tag. Package code is identical across both commits; only README/learnings differ.
 
 ## Frozen-contract cross-checks for B and C
 
