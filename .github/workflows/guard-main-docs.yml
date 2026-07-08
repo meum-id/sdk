@@ -18,3 +18,6 @@ permissions:
 jobs:
   guard-docs:
     uses: brettdavies/.github/.github/workflows/guard-main-docs.yml@c22bf91089fc83a82f641aa6b1ea6ff223d8d3e1 # main as of 2026-07-06
+    with:
+      # Agent learnings and Lighthouse output stay on dev only.
+      extra_paths: '.agent/,.lighthouseci/'
