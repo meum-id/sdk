@@ -1,10 +1,13 @@
 # CI for the Bun + Biome + TypeScript monorepo: install, lint, typecheck, test.
 #
 # The test suite includes the @meum/sdk bundle-size gate (<50KB gzipped) and
-# the Miniflare smoke test for the mock Worker.
+# the Miniflare smoke test for the mock Worker. The shared meum-id/.github
+# bun-ci.yml reusable runs the actual steps; this caller only carries the
+# event trigger, concurrency, and permissions (GitHub mechanics that must stay
+# on the caller).
 #
 # Not wired as a required status check yet. Once the checks report, add the
-# `ci / Lint, typecheck, test` context to .github/rulesets/protect-main.json.
+# `ci / lint, typecheck, test` context to .github/rulesets/protect-main.json.
 name: CI
 
 on:
@@ -20,26 +23,4 @@ permissions:
 
 jobs:
   ci:
-    name: Lint, typecheck, test
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Lint (Biome)
-        run: bun run lint
-
-      - name: Typecheck (tsc)
-        run: bun run typecheck
-
-      - name: Test
-        run: bun test
+    uses: meum-id/.github/.github/workflows/bun-ci.yml@main
