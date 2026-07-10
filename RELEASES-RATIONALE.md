@@ -120,13 +120,15 @@ titles and re-amend before re-running.
 ### Annotated tags
 
 Always use annotated tags (`-a -m`). Bare `git tag <name>` silently fails with `fatal: no tag message?` on machines
-where `tag.gpgsign=true` is set globally. The annotated `v*` tag on `main` is the single trigger for `release.yml`.
+where `tag.gpgsign=true` is set globally. The annotated `vX.Y.Z` tag on `main` is the single trigger for `release.yml`
+(also re-runnable via `workflow_dispatch` for an existing tag).
 
 ### npm publish and package versioning
 
-`release.yml` builds each package and runs `npm publish --access public` per `packages/*`. The `--access public` flag is
-mandatory for scoped packages (`@meum/*`): npm defaults scoped packages to restricted, and a first publish without the
-flag fails or publishes privately. Equivalently, each `package.json` can carry `"publishConfig": {"access": "public"}`.
+`release.yml` verifies the tag commit is on `main` and the package version matches the tag, builds each package, and
+runs `npm publish --access public` per `packages/*`. The `--access public` flag is mandatory for scoped packages
+(`@meum/*`): npm defaults scoped packages to restricted, and a first publish without the flag fails or publishes
+privately. Equivalently, each `package.json` can carry `"publishConfig": {"access": "public"}`.
 
 The three packages version together for the Phase-0 demo, so the release bumps every `packages/*/package.json` to the
 same value in one commit. Inter-package dependency ranges (`@meum/contracts` consumed by `@meum/sdk`, etc.) bump in the
@@ -143,9 +145,9 @@ path is the simpler bootstrap for the first publish.
 
 The release-bookkeeping files on `main` (version bumps, `bun.lock`, `CHANGELOG.md`) need to reach `dev` so future builds
 from `dev` report the released version and the next dev work starts from the released baseline.
-`scripts/sync-dev-after-release.sh` backports via a PR against `dev` (direct commits to `dev` are not permitted). Keeping
-the next release's PREFLIGHT diff-B step quiet means a real missed cherry-pick stands out instead of hiding in expected
-divergence noise.
+`scripts/sync-dev-after-release.sh` backports via a PR against `dev` (direct commits to `dev` are not permitted).
+Keeping the next release's PREFLIGHT diff-B step quiet means a real missed cherry-pick stands out instead of hiding in
+expected divergence noise.
 
 ## Prose scrubbing scope
 
@@ -168,8 +170,8 @@ check:
 The `ci.yml` job key is `ci:` and its `name:` is `Lint, typecheck, test`, so once wired the context is `ci / Lint,
 typecheck, test`. The guard callers use job keys `guard-docs:` and `guard-release:`, so their contexts are `guard-docs /
 check-forbidden-docs` and `guard-release / check-release-branch-name`. Mixing these produces a stuck-but-green PR:
-confirm the real contexts after a first CI run with
-`gh api repos/meum-id/sdk/commits/<sha>/check-runs --jq '.check_runs[].name'` before adding them to the ruleset.
+confirm the real contexts after a first CI run with `gh api repos/meum-id/sdk/commits/<sha>/check-runs --jq
+'.check_runs[].name'` before adding them to the ruleset.
 
 ### Why the applied rulesets omit required status checks (for now)
 
