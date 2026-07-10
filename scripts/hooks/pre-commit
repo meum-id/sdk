@@ -17,7 +17,7 @@ if [ ! -f package.json ]; then
   exit 0
 fi
 
-if ! ls biome.json biome.jsonc >/dev/null 2>&1; then
+if [ ! -f biome.json ] && [ ! -f biome.jsonc ]; then
   echo "pre-commit: no Biome config yet; skipping Biome checks"
   exit 0
 fi
