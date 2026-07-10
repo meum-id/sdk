@@ -149,4 +149,16 @@ jobs:
             echo "release ${TAG} already exists; skipping"
             exit 0
           fi
-          gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          NOTES_ARGS=(--generate-notes)
+          if [ -f CHANGELOG.md ]; then
+            # Section = from the '## ' heading containing the version to the next '## ' heading.
+            awk -v ver="${TAG#v}" '/^## /{if(f)exit; if(index($0,ver))f=1} f' CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
+            if [ -s "$RUNNER_TEMP/release-notes.md" ]; then
+              NOTES_ARGS=(--notes-file "$RUNNER_TEMP/release-notes.md")
+            else
+              echo "::warning::no CHANGELOG.md section for ${TAG}; using generated notes"
+            fi
+          else
+            echo "no CHANGELOG.md yet; using generated notes (skeleton)"
+          fi
+          gh release create "$TAG" --verify-tag --title "$TAG" "${NOTES_ARGS[@]}"
