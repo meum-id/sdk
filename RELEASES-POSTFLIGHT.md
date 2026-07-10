@@ -13,8 +13,9 @@ the same go/no-go shape: every box is explicit, an unchecked or red item holds t
 Run immediately after the tag push triggers `release.yml`.
 
 - [ ] **`release.yml` green end-to-end.** `gh run watch <id> --exit-status` then verify with `gh run view <id> --json
-  conclusion --jq .conclusion` (a completed watcher is not a green watcher). The run builds every package and runs `npm
-  publish --access public` per `packages/*`.
+  conclusion --jq .conclusion` (a completed watcher is not a green watcher). The `publish` job verifies the tag commit
+  is on `main` and the version match, builds every package, and runs `npm publish --access public` per `packages/*`; the
+  `github-release` job then creates the GitHub Release for the tag.
 
 - [ ] **Every package published at the new version.** For each of `@meum/contracts`, `@meum/verify`, `@meum/sdk`:
 
@@ -29,8 +30,8 @@ Run immediately after the tag push triggers `release.yml`.
 - [ ] **Public access confirmed.** Each package resolves for an anonymous consumer (scoped packages default to
   restricted; a missing `--access public` publishes privately). `npm view @meum/<pkg>` succeeds without auth.
 
-- [ ] **Tarball contents correct.** `npm pack @meum/<pkg>@<version>` (or inspect on npmjs.com) contains the built output,
-  type declarations, LICENSE, and README, with no stray source, tests, or secrets.
+- [ ] **Tarball contents correct.** `npm pack @meum/<pkg>@<version>` (or inspect on npmjs.com) contains the built
+  output, type declarations, LICENSE, and README, with no stray source, tests, or secrets.
 
 - [ ] **`@meum/verify` stays zero-dependency.** `npm view @meum/verify dependencies` is empty. The zero-dependency
   guarantee is part of its published contract; a leaked transitive dependency is a release-blocking regression.
@@ -47,9 +48,9 @@ Run immediately after the tag push triggers `release.yml`.
   Confirms the publish landed all package data and the packages resolve against each other and against a real registry
   install, not just the local workspace.
 
-- [ ] **GitHub Release (if the workflow creates one) is present and non-draft** for `v<version>`, and
-  `releases/latest` resolves to it: `gh api repos/meum-id/sdk/releases/latest --jq .tag_name` returns `v<version>`.
-  Skip if `release.yml` does not create a GitHub Release.
+- [ ] **GitHub Release is present and non-draft** for `v<version>`, created by the `github-release` job in
+  `release.yml`, and `releases/latest` resolves to it: `gh api repos/meum-id/sdk/releases/latest --jq .tag_name` returns
+  `v<version>`.
 
 - [ ] **Backport `main` -> `dev`.** Run `scripts/sync-dev-after-release.sh v<version>` to bring the release bookkeeping
   (version bumps, `bun.lock`, `CHANGELOG.md`) to `dev` via a PR. Keeps the next release's PREFLIGHT diff-B step quiet so

@@ -8,7 +8,7 @@ lives in [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md). Post-tag verificati
 feature branch -> PR to dev (squash merge)
               -> cherry-pick to release/* branch cut from origin/main
               -> PR to main (squash merge)
-              -> annotated v* tag push -> release.yml publishes to npm
+              -> annotated vX.Y.Z tag push -> release.yml verifies -> publishes to npm -> creates the GitHub Release
 ```
 
 Direct commits to `dev` or `main` are not permitted for shipped code: every change has a PR number in its squash commit
@@ -151,8 +151,9 @@ git tag -a -m "Release v<version>" v<version>
 git push origin main --tags
 ```
 
-Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/release.yml`, which builds each package
-and runs `npm publish --access public` for each `packages/*` under the `@meum` scope.
+Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/release.yml`, which verifies the tag
+commit is on `main` and that the package version matches the tag, builds each package, runs `npm publish --access
+public` for each `packages/*` under the `@meum` scope, and creates the GitHub Release for the tag.
 
 ### After publish: sync `dev` with the release
 
@@ -204,8 +205,8 @@ gh api -X PUT repos/meum-id/sdk/rulesets/<id> --input .github/rulesets/protect-m
 
 ### Required secrets
 
-| Secret      | Purpose                                              | Set with                                   |
-| ----------- | --------------------------------------------------- | ------------------------------------------ |
+| Secret      | Purpose                                             | Set with                                     |
+| ----------- | --------------------------------------------------- | -------------------------------------------- |
 | `NPM_TOKEN` | npm automation token with publish scope for `@meum` | `gh secret set NPM_TOKEN --repo meum-id/sdk` |
 
 `release.yml` reads `NPM_TOKEN` as `NODE_AUTH_TOKEN`. Alternatively switch to npm Trusted Publishing (OIDC): set
@@ -214,9 +215,9 @@ a skeleton and no-ops on the bare repo.
 
 ### Distribution channels
 
-| Channel | Package(s)                                     | How                                        |
-| ------- | ---------------------------------------------- | ------------------------------------------ |
-| npm     | `@meum/contracts`, `@meum/verify`, `@meum/sdk` | `npm publish --access public` on a `v*` tag |
+| Channel | Package(s)                                     | How                                             |
+| ------- | ---------------------------------------------- | ----------------------------------------------- |
+| npm     | `@meum/contracts`, `@meum/verify`, `@meum/sdk` | `npm publish --access public` on a `vX.Y.Z` tag |
 
 ### First publish (one-time)
 
