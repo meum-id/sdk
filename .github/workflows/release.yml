@@ -1,16 +1,17 @@
 # Release pipeline: an annotated vX.Y.Z tag push on main gates, publishes the
 # workspace packages to npm, and creates the GitHub Release as its output.
 #
-# All three jobs are thin callers of shared meum-id/.github reusables: the
-# integrity gate (tag on main, version matches package.json), the npm build +
-# publish job, and the GitHub Release terminal job. workflow_dispatch re-runs
-# the pipeline for an existing tag.
+# Fires on an annotated `vX.Y.Z` tag push (after the release/vX.Y.Z -> main PR
+# merges), or via workflow_dispatch with an existing tag to re-run the
+# pipeline for. The `publish` job verifies the tag commit is on main and that
+# the root package.json version matches the tag before building and
+# publishing each package under packages/* to the @meum scope with public
+# access. The `github-release` job then creates the release from the tag.
 #
-# npm-publish.yml is defensive by design: the product scaffolding
-# (package.json, workspace packages, build scripts) is added later by another
-# agent per the plan. Every publish step guards on the relevant file and
-# no-ops with a message when the scaffolding is absent, so a tag push against
-# the bare repo is a green no-op.
+# Defensive by design: the product scaffolding (package.json, workspace
+# packages, build scripts) is added later by another agent per the plan. Every
+# publish step guards on the relevant file and no-ops with a message when the
+# scaffolding is absent, so a tag push against the bare repo is a green no-op.
 #
 # TODO before first real publish:
 #   - Add the NPM_TOKEN secret (npm automation token, publish scope for @meum):
@@ -36,24 +37,128 @@ permissions:
   contents: read
 
 jobs:
-  verify:
-    uses: meum-id/.github/.github/workflows/verify-release-tag.yml@main
-    with:
-      tag: ${{ inputs.tag || github.ref_name }}
-
   publish:
-    needs: verify
-    uses: meum-id/.github/.github/workflows/npm-publish.yml@main
-    with:
-      tag: ${{ inputs.tag || github.ref_name }}
-    secrets:
-      # TODO: add the NPM_TOKEN secret (see header). Publish 401s without it.
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    name: Publish packages to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      tag: ${{ steps.resolve-tag.outputs.tag }}
+    steps:
+      - name: Resolve tag
+        id: resolve-tag
+        env:
+          DISPATCH_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          TAG="${DISPATCH_TAG:-$REF_NAME}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.resolve-tag.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Verify release integrity
+        env:
+          TAG: ${{ steps.resolve-tag.outputs.tag }}
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "release commit is not on main; the tag must point at a commit reachable from main" >&2
+            exit 1
+          fi
+
+          if [ -f package.json ]; then
+            PKG_VERSION=$(node -p "require('./package.json').version")
+            TAG_VERSION="${TAG#v}"
+            if [ "${PKG_VERSION}" != "${TAG_VERSION}" ]; then
+              echo "package.json version (${PKG_VERSION}) does not match tag ${TAG}" >&2
+              exit 1
+            fi
+          else
+            echo "scaffolding not present yet (no package.json); skipping version check"
+          fi
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      - name: Setup Node (npm registry auth)
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then
+            bun install --frozen-lockfile
+          else
+            echo "scaffolding not present yet (no package.json); skipping install"
+          fi
+
+      - name: Build packages
+        run: |
+          if [ -f package.json ]; then
+            bun run build
+          else
+            echo "scaffolding not present yet (no package.json); skipping build"
+          fi
+
+      - name: Publish packages to npm
+        env:
+          # TODO: add the NPM_TOKEN secret (see header). Publish 401s without it.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ ! -d packages ]; then
+            echo "scaffolding not present yet (no packages/ directory); skipping publish"
+            exit 0
+          fi
+          for pkg in packages/*/; do
+            if [ -f "${pkg}package.json" ]; then
+              echo "Publishing ${pkg}"
+              npm publish --access public --workspace "${pkg}" || {
+                echo "publish failed for ${pkg}"
+                exit 1
+              }
+            fi
+          done
 
   github-release:
+    name: Create GitHub Release
     needs: publish
-    uses: meum-id/.github/.github/workflows/create-github-release.yml@main
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
-    with:
-      tag: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.publish.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.publish.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "release ${TAG} already exists; skipping"
+            exit 0
+          fi
+          NOTES_ARGS=(--generate-notes)
+          if [ -f CHANGELOG.md ]; then
+            # Section = from the '## ' heading containing the version to the next '## ' heading.
+            awk -v ver="${TAG#v}" '/^## /{if(f)exit; if(index($0,ver))f=1} f' CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
+            if [ -s "$RUNNER_TEMP/release-notes.md" ]; then
+              NOTES_ARGS=(--notes-file "$RUNNER_TEMP/release-notes.md")
+            else
+              echo "::warning::no CHANGELOG.md section for ${TAG}; using generated notes"
+            fi
+          else
+            echo "no CHANGELOG.md yet; using generated notes (skeleton)"
+          fi
+          gh release create "$TAG" --verify-tag --title "$TAG" "${NOTES_ARGS[@]}"
