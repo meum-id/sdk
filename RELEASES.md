@@ -125,6 +125,9 @@ git add packages/*/package.json bun.lock CHANGELOG.md
 git commit -m "release: v<version>"
 ```
 
+A forgotten lock edit cannot land: `test/lock-versions.test.ts` fails `bun test` (CI and the pre-push hook) whenever a
+`packages/*/package.json` version disagrees with its `workspaces` entry in `bun.lock`.
+
 ### Cherry-pick conflicts on guarded paths
 
 Cherry-picks of feature PRs that touched `docs/plans/` / `docs/brainstorms/` / `docs/ideation/` / `docs/reviews/` /
