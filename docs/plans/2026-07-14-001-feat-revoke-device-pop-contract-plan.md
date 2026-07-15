@@ -1,7 +1,9 @@
 ---
 title: "feat: revoke device proof-of-possession — contract (KeyRevokeRequest proof field)"
 date_created: 2026-07-14
-status: active
+date_modified: 2026-07-14
+status: done
+implemented: packages/contracts (PR #19, commit f43950b, seam tag sdk-v0.2.0)
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 execution: code
@@ -16,7 +18,12 @@ tags: [meum-mvp, contracts, revoke, device-pop, frozen-seam]
 
 # feat: revoke device proof-of-possession — contract
 
-> **Target repo:** `meum-id/sdk` (this repo, `@meum/contracts`). This is one of three cross-referencing plans for U9 (device proof-of-possession on the key-revoke route). It defines the wire contract that the api (verifier) and iOS (signer) both depend on, so it **lands first**. It runs in its own session; there is no orchestrator plan. Sibling plans: `meum-id/api docs/plans/2026-07-14-002-…-verify-plan.md`, `meum-id/ios docs/plans/2026-07-14-001-…-signing-plan.md`. Parent: `meum-id/api docs/plans/2026-07-14-001-feat-api-prod-and-demo-access-plan.md` U9.
+> **Target repo:** `meum-id/sdk` (this repo, `@meum/contracts`). This is one of three cross-referencing plans for U9
+> (device proof-of-possession on the key-revoke route). It defines the wire contract that the api (verifier) and iOS
+> (signer) both depend on, so it **lands first**. It runs in its own session; there is no orchestrator plan. Sibling
+> plans: `meum-id/api docs/plans/2026-07-14-002-…-verify-plan.md`, `meum-id/ios
+> docs/plans/2026-07-14-001-…-signing-plan.md`. Parent: `meum-id/api
+> docs/plans/2026-07-14-001-feat-api-prod-and-demo-access-plan.md` U9.
 
 ---
 
