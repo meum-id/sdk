@@ -49,8 +49,8 @@ hooks and CI rather than replacing them:
   `build` scripts in the root `package.json` so these steps do real work. Once green, add the `ci / Lint, typecheck,
   test` context to `.github/rulesets/protect-main.json` to make it a required check.
 - **Release** (`.github/workflows/release.yml`) publishes each `packages/*` to npm on a `v*` tag. Add the `NPM_TOKEN`
-  secret (or switch to npm Trusted Publishing / OIDC) and ensure each `package.json` sets
-  `"publishConfig": {"access": "public"}` before the first real tag.
+  secret (or switch to npm Trusted Publishing / OIDC) and ensure each `package.json` sets `"publishConfig": {"access":
+  "public"}` before the first real tag.
 - **Hooks** (`scripts/hooks/pre-commit`, `scripts/hooks/pre-push`) mirror CI locally and no-op until `package.json`
   exists. Activate with `git config core.hooksPath scripts/hooks`.
 - **Release quad** (`RELEASES.md`, `RELEASES-RATIONALE.md`, `RELEASES-PREFLIGHT.md`, `RELEASES-POSTFLIGHT.md`) plus
@@ -82,3 +82,8 @@ publishes to npm.
 - [`README.md`](README.md): what the packages are, the stack, hook activation.
 - [`RELEASES.md`](RELEASES.md): release runbook.
 - `meum-control` `docs/plans/2026-07-06-001-feat-meum-demo-backend-contracts-plan.md`: the plan this repo implements.
+- [`CONCEPTS.md`](CONCEPTS.md): shared domain vocabulary (entities, named processes, status concepts); relevant when
+  orienting to the codebase or discussing domain concepts.
+- `docs/solutions/`: documented solutions to past problems (bugs, best practices, workflow patterns), organized by
+  category with YAML frontmatter (`module`, `tags`, `problem_type`); a local symlink to a shared private corpus, present
+  on dev workstations only.

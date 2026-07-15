@@ -116,7 +116,10 @@ inter-package `dependencies` / `peerDependencies` ranges) to the new value, then
 ```bash
 # On the release/v<version> branch:
 # ... edit packages/*/package.json version fields to <version> ...
-bun install                       # refresh bun.lock to match the bumped versions
+# bun install does not rewrite the workspaces version fields in bun.lock;
+# edit them directly, then prove the lock is still accepted (the CI check):
+sed -i 's/"version": "<old>",/"version": "<new>",/' bun.lock
+bun install --frozen-lockfile
 scripts/generate-changelog.py     # detects <version> from the branch name
 git add packages/*/package.json bun.lock CHANGELOG.md
 git commit -m "release: v<version>"
