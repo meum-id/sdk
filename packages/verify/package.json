@@ -1,6 +1,6 @@
 {
   "name": "@meum/verify",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Zero-dependency reference offline verifier for Meum receipts (WebCrypto ES256), plus fixtures and a mock Worker",
   "license": "Apache-2.0",
   "type": "module",

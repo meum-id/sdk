@@ -35,8 +35,27 @@ export const KeysRegisterResponseSchema = z.object({
 });
 export type KeysRegisterResponse = z.infer<typeof KeysRegisterResponseSchema>;
 
+export const REVOKE_PURPOSES = ['revoke', 'migration_to_full_app'] as const;
+export const RevokePurposeSchema = z.enum(REVOKE_PURPOSES);
+export type RevokePurpose = z.infer<typeof RevokePurposeSchema>;
+
+/**
+ * Claims of the compact-JWS revoke proof, signed by the device key being revoked. `kid` must match
+ * both the revoke URL path and the JWS header `kid`; `iat` and `jti` support the backend's
+ * anti-replay policy; `purpose` distinguishes a live self-revoke from a pre-signed migration token.
+ */
+export const RevokeProofPayloadSchema = z.object({
+  kid: KidSchema,
+  iat: z.number().int(),
+  jti: z.string().min(16),
+  purpose: RevokePurposeSchema,
+});
+export type RevokeProofPayload = z.infer<typeof RevokeProofPayloadSchema>;
+
 export const KeyRevokeRequestSchema = z.object({
   reason: RevocationReasonSchema,
+  /** Device proof-of-possession: a compact JWS over `RevokeProofPayload`, verified by the backend. */
+  proof: CompactJwtSchema,
 });
 export type KeyRevokeRequest = z.infer<typeof KeyRevokeRequestSchema>;
 

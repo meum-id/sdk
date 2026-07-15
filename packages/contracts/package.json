@@ -1,6 +1,6 @@
 {
   "name": "@meum/contracts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Frozen Zod wire schemas for the Meum verification API: endpoint payloads, predicate grammar, error envelope, ID prefixes",
   "license": "Apache-2.0",
   "type": "module",

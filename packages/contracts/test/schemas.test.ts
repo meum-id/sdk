@@ -86,7 +86,11 @@ const fixtures: Array<[string, { safeParse: (v: unknown) => { success: boolean }
     KeysRegisterResponseSchema,
     { kid: 'kid_abc123', status: 'active', registered_at: '2026-07-06T12:00:00Z' },
   ],
-  ['KeyRevokeRequest', KeyRevokeRequestSchema, { reason: 'migration_to_full_app' }],
+  [
+    'KeyRevokeRequest',
+    KeyRevokeRequestSchema,
+    { reason: 'migration_to_full_app', proof: 'eyJhbGciOiJFUzI1NiJ9.eyJraWQiOiJraWRfYWJjMTIzIn0.c2ln' },
+  ],
   [
     'KeyRevokeResponse',
     KeyRevokeResponseSchema,
