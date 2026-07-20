@@ -123,11 +123,6 @@ bun test           # includes the <50KB gz bundle gate and Miniflare smoke test
 - **Language:** TypeScript 5.6+, strict mode.
 - **Layout:** monorepo, `packages/{contracts,verify,sdk}`. `@meum/verify` has zero runtime dependencies by design.
 
-## Plan
-
-This repo implements the public-package portion of Plan A. The plan lives in the `meum-control` repo at
-`docs/plans/2026-07-06-001-feat-meum-demo-backend-contracts-plan.md`.
-
 ## Branch and release model
 
 - `main` is the stable, published branch. It receives code only via PR from `release/*` branches.
