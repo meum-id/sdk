@@ -15,6 +15,9 @@ on:
 permissions:
   pull-requests: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   guard-docs:
     uses: brettdavies/.github/.github/workflows/guard-main-docs.yml@c8aaed5b969713355efe6fa2914feb732d91268d # main as of 2026-07-09

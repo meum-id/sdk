@@ -18,6 +18,9 @@ on:
 permissions:
   pull-requests: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   guard-release:
     uses: brettdavies/.github/.github/workflows/guard-release-branch.yml@c22bf91089fc83a82f641aa6b1ea6ff223d8d3e1 # main as of 2026-07-06
