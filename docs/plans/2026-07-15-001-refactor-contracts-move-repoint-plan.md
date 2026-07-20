@@ -61,7 +61,9 @@ half of that move.
 **Repoint and removal**
 
 - R1. `@meum/sdk` consumes `@meum/contracts` from the npm-published package (`@meum` scope, `^0.2.0`) rather than the
-  workspace copy; its runtime imports (`@meum/contracts/claims`, `@meum/contracts/codes`) are unchanged.
+  workspace copy; its runtime imports (`@meum/contracts/claims`, `@meum/contracts/codes`) are unchanged. The package is
+  **public**: the repoint resolves it from npm anonymously — no auth, no token-gated `.npmrc`, no private-registry
+  config in this repo or its CI.
 - R2. `@meum/verify`'s `@meum/contracts` devDependency resolves to the published package, and verify's
   zero-runtime-dependency property is preserved.
 - R3. The local `packages/contracts` source is removed from meum-id/sdk once the published package is available; this
@@ -162,10 +164,11 @@ this plan's U1–U3 can install and pass verification. U4–U5 have no such gate
 - meum-id/api is the single first-party server implementation, so co-location (not a standalone repo) is the right
   structure now — consistent with the recorded extraction trigger (R7).
 - The contract's development home moves from the public meum-id/sdk repo into the private meum-id/api repo, and the
-  published package's npm `repository` link points there. This is accepted: keeping ongoing contract development private
-  is a goal, and external consumers still get the source in the npm tarball, though they lose a browsable repo, issues,
-  and history for the interface. If public visibility of the contract itself becomes a requirement, that is a second
-  trigger for the R7 standalone-repo extraction, alongside a second server implementation.
+  published package's npm `repository` link points there. Repo privacy and package visibility are independent: the
+  development repo is private, but the **npm package is public** (`npm publish --access public`), so consumers resolve
+  `@meum/contracts` anonymously and get the full source in the tarball. What consumers lose is a browsable repo, issues,
+  and interface history — not the artifact. If browsable public development of the contract itself becomes a
+  requirement, that is a second trigger for the R7 standalone-repo extraction, alongside a second server implementation.
 
 ---
 
@@ -342,9 +345,10 @@ their own; U6 depends on U3.
 - **Consumer impact — interim hybrid install model.** Relying parties (`meum-id/api`, `meum-id/ios`) vendor meum-id/sdk
   at a `sdk-v*` tag and resolve `@meum/contracts` through a `file:`/`overrides` recipe. After the repoint the clients
   are still vendored-by-tag but `@meum/contracts` resolves from npm, so consumers must drop the `file:` override for the
-  contract and have npm reachable. This hybrid (clients vendored, contract from npm) is a deliberate consequence of
-  deferring client publishing; U6 updates the README consumer recipe, and the next sdk tag is cut only once the contract
-  is live on npm.
+  contract and have the public npm registry reachable. Because the package is public, that is the only requirement — no
+  auth token, no scoped `.npmrc`, no private-registry credentials in any consumer repo or its CI. This hybrid (clients
+  vendored, contract from npm) is a deliberate consequence of deferring client publishing; U6 updates the README
+  consumer recipe, and the next sdk tag is cut only once the contract is live on npm.
 - **Naming lag.** The repo keeps the `meum-id/sdk` name though it is now client-only; a rename is deferred and out of
   scope.
 - **Publish path may be unproven.** `release.yml` publishes on a `v*` tag, but the repo's release tags are `sdk-v*` and
