@@ -119,6 +119,10 @@ function handleEnrollmentPoll(deviceId: string): Response {
   return errorResponse(410, { code: 2002, message: 'Enrollment expired', category: 'session' });
 }
 
+// This dispatch table is a hand-maintained offline-fixture mirror of
+// meum-id/api's real routes, which are the source of truth. The mirror exists
+// so the device and RP tracks develop with no live backend; drift is expected
+// and the table is updated when meum-id/api's routes change.
 export async function handleRequest(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const { pathname } = url;

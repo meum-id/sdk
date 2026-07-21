@@ -17,15 +17,15 @@ Run immediately after the tag push triggers `release.yml`.
   is on `main` and the version match, builds every package, and runs `npm publish --access public` per `packages/*`; the
   `github-release` job then creates the GitHub Release for the tag.
 
-- [ ] **Every package published at the new version.** For each of `@meum/contracts`, `@meum/verify`, `@meum/sdk`:
+- [ ] **Every client package published at the new version.** For each of `@meum/verify`, `@meum/sdk`:
 
   ```bash
-  npm view @meum/contracts version   # expect <version>
-  npm view @meum/verify version
+  npm view @meum/verify version   # expect <version>
   npm view @meum/sdk version
   ```
 
-  All three report the new `<version>`, not the previous one.
+  Both report the new `<version>`, not the previous one. `@meum/contracts` is published from `meum-id/api`; it is not
+  part of this repo's release.
 
 - [ ] **Public access confirmed.** Each package resolves for an anonymous consumer (scoped packages default to
   restricted; a missing `--access public` publishes privately). `npm view @meum/<pkg>` succeeds without auth.
@@ -41,12 +41,12 @@ Run immediately after the tag push triggers `release.yml`.
   ```bash
   mkdir /tmp/meum-postflight && cd /tmp/meum-postflight
   npm init -y >/dev/null
-  npm install @meum/sdk@<version> @meum/verify@<version> @meum/contracts@<version>
+  npm install @meum/sdk@<version> @meum/verify@<version>
   node -e "require('@meum/verify'); console.log('resolved')"
   ```
 
-  Confirms the publish landed all package data and the packages resolve against each other and against a real registry
-  install, not just the local workspace.
+  Confirms the publish landed all package data and the client packages resolve against each other (and pull
+  `@meum/contracts` from npm) against a real registry install, not just the local workspace.
 
 - [ ] **GitHub Release is present and non-draft** for `v<version>`, created by the `github-release` job in
   `release.yml`, and `releases/latest` resolves to it: `gh api repos/meum-id/sdk/releases/latest --jq .tag_name` returns

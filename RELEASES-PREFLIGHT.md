@@ -6,8 +6,8 @@ branch, not the daily dev integration. Each box is an explicit go/no-go. If any 
 release.
 
 CI catches mechanical regressions inside the repo. This checklist covers what CI structurally cannot: contract drift in
-the published package surface, version consistency across the three packages, and clean packing before anything reaches
-npm.
+the published package surface, version consistency across the two client packages, and clean packing before anything
+reaches npm.
 
 Post-tag verification (release.yml -> npm publish) lives in [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md). The
 tag push happens AFTER the release-branch cut and the PR-to-main merge, so verification of the tag-triggered pipeline is
@@ -45,23 +45,24 @@ run it explicitly before pushing the release branch.
 The published surface is the union of each package's exported API and its `package.json` publish metadata. Confirm
 against the previous release before tagging.
 
-- [ ] Exported API of each package (`@meum/contracts`, `@meum/verify`, `@meum/sdk`) matches the previous release plus
-  any net additions or removals. Every removed or renamed export has a `!:` commit and a `### Changed` bullet in the
-  release changelog.
+- [ ] Exported API of each client package (`@meum/verify`, `@meum/sdk`) matches the previous release plus any net
+  additions or removals. Every removed or renamed export has a `!:` commit and a `### Changed` bullet in the release
+  changelog.
 - [ ] `@meum/verify` still declares **zero runtime dependencies**. Check its `package.json` `dependencies` is empty (the
   zero-dependency guarantee is part of its contract).
 - [ ] Each `package.json` has the correct `"name"` (`@meum/<pkg>`), `"exports"` map, `"types"` entry, `"files"`
   allowlist, and `"publishConfig": {"access": "public"}`.
-- [ ] `npm pack --dry-run` (or `bun pm pack --dry-run`) for each package lists exactly the intended files (built output +
-  types + LICENSE + README), with no stray source, tests, or secrets.
+- [ ] `npm pack --dry-run` (or `bun pm pack --dry-run`) for each package lists exactly the intended files (built
+  output + types + LICENSE + README), with no stray source, tests, or secrets.
 
 ### Version consistency
 
 - [ ] Every `packages/*/package.json` `"version"` is bumped to the new `<version>` and they all match.
-- [ ] Inter-package dependency ranges (`@meum/contracts` consumed by `@meum/sdk`, etc.) reference the new `<version>` so
-  a published set resolves against itself.
+- [ ] Inter-package dependency ranges (`@meum/verify` consumed by `@meum/sdk`) reference the new `<version>` so a
+  published set resolves against itself. The `@meum/contracts` range tracks the npm package published from `meum-id/api`,
+  not this repo's version.
 - [ ] `bun.lock` regenerated (`bun install`) and committed after the version bump.
-- [ ] The new `<version>` is not already published on npm for any of the three packages (`npm view @meum/<pkg> versions`
+- [ ] The new `<version>` is not already published on npm for either client package (`npm view @meum/<pkg> versions`
   does not list it).
 
 ### Release mechanics sanity
