@@ -110,8 +110,9 @@ the remote on merge. `dev` is untouched.
 
 ### Version bump
 
-The three packages version together for the Phase-0 demo. Bump each `packages/*/package.json` `"version"` (and any
-inter-package `dependencies` / `peerDependencies` ranges) to the new value, then regenerate the changelog:
+The two client packages version together for the Phase-0 demo. Bump each `packages/*/package.json` `"version"` (and any
+inter-package `dependencies` / `peerDependencies` ranges) to the new value, then regenerate the changelog. The
+`@meum/contracts` dependency range is not bumped here — it tracks the contract published from `meum-id/api`:
 
 ```bash
 # On the release/v<version> branch:
@@ -221,9 +222,12 @@ a skeleton and no-ops on the bare repo.
 
 ### Distribution channels
 
-| Channel | Package(s)                                     | How                                             |
-| ------- | ---------------------------------------------- | ----------------------------------------------- |
-| npm     | `@meum/contracts`, `@meum/verify`, `@meum/sdk` | `npm publish --access public` on a `vX.Y.Z` tag |
+| Channel | Package(s)                  | How                                             |
+| ------- | --------------------------- | ----------------------------------------------- |
+| npm     | `@meum/verify`, `@meum/sdk` | `npm publish --access public` on a `vX.Y.Z` tag |
+
+`@meum/contracts` is not published from this repo — it is owned and published by `meum-id/api`. This repo consumes it
+from npm as a dependency.
 
 ### First publish (one-time)
 

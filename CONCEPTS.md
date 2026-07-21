@@ -8,9 +8,11 @@ direct edits are fine. Glossary only, not a spec or catch-all.
 
 ### Frozen seam
 
-The public wire contract (endpoint payloads, receipt and key formats, error codes) frozen at a tagged cut. Consumers
-build against a specific cut by vendoring the source at its tag; any change is a deliberate re-cut that consumers adopt
-explicitly by re-vendoring. A re-cut may be breaking; the seam never evolves in place.
+The public wire contract (endpoint payloads, receipt and key formats, error codes), owned and published by `meum-id/api`
+as the public npm package `@meum/contracts`. The client packages here consume it as a versioned dependency (`^0.2.0`).
+Each contract version is a deliberate, explicit cut consumers adopt by bumping the dependency; a bump may be breaking,
+and the seam never evolves in place. A contract change surfaces to consumers as a dependency update rather than a silent
+in-place edit.
 
 ## Device keys and revocation
 
