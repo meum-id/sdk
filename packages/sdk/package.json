@@ -20,7 +20,7 @@
     "directory": "packages/sdk"
   },
   "dependencies": {
-    "@meum/contracts": "workspace:*",
+    "@meum/contracts": "^0.2.0",
     "@meum/verify": "workspace:*"
   }
 }

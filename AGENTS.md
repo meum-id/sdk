@@ -1,6 +1,6 @@
 ---
 name: meum-sdk
-description: Public Apache-2.0 Meum SDK monorepo. Zod wire contracts, a zero-dependency reference offline receipt-verifier, and the relying-party client, published to npm under @meum.
+description: Public Apache-2.0 Meum SDK client monorepo. A zero-dependency reference offline receipt-verifier and the relying-party client, published to npm under @meum. Consumes the @meum/contracts wire contract from npm (owned by meum-id/api).
 homepage: https://github.com/meum-id/sdk
 repository: https://github.com/meum-id/sdk
 ---
@@ -11,12 +11,15 @@ Agent instructions for the public Meum SDK monorepo. Read this before writing co
 
 ## What this repo is
 
-The published contract seam for the Meum Phase-0 age-verification demo. It ships three npm packages under the `@meum`
-scope:
+The client repo for the Meum Phase-0 age-verification demo. It ships two npm packages under the `@meum` scope:
 
-- `@meum/contracts` (`packages/contracts`): Zod wire schemas for the request/response contract.
 - `@meum/verify` (`packages/verify`): zero-dependency reference offline receipt-verifier plus receipt/JWKS types.
 - `@meum/sdk` (`packages/sdk`): relying-party (RP) client.
+
+The wire contract `@meum/contracts` is owned and published by `meum-id/api` (its reference implementation) and consumed
+here from npm as a versioned dependency (`^0.2.0`, public `@meum` scope, resolved anonymously). Extract `@meum/contracts`
+to its own standalone repo when a second independent server implementation appears; the canonical ADR lives in
+`meum-id/api` (`docs/adr/0001-contracts-ownership-and-extraction-trigger.md`).
 
 ## Public boundary and PII
 
@@ -35,8 +38,8 @@ surface, schema shapes, and the receipt/JWKS format. Do not fetch it from here; 
 - **Runtime + tooling:** Bun (workspaces + test runner). Use `bun install`, `bun run <script>`, `bun test`.
 - **Lint + format:** Biome (`biome check --write`). One config at the repo root drives every package.
 - **Language:** TypeScript 5.6+, strict mode.
-- **Layout:** monorepo, `packages/{contracts,verify,sdk}`. `@meum/verify` stays zero-dependency by design; do not add
-  runtime dependencies to it.
+- **Layout:** monorepo, `packages/{verify,sdk}`. `@meum/verify` stays zero-dependency by design; do not add runtime
+  dependencies to it. `@meum/contracts` is a published npm dependency owned by `meum-id/api`, not a local package.
 - **Commits:** Conventional Commits. No AI attribution in commits or PR bodies.
 
 ## Infrastructure is pre-seeded: connect to it, do not recreate it

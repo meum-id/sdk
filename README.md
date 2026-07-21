@@ -1,26 +1,37 @@
 # Meum SDK
 
-Public, Apache-2.0 licensed contract seam for the Meum Phase-0 age-verification demo. This repo holds the wire schemas,
-the receipt and JWKS format, a zero-dependency reference offline receipt-verifier, and the relying-party client. It
-carries no PII.
+Public, Apache-2.0 licensed client repo for the Meum Phase-0 age-verification demo. This repo holds a zero-dependency
+reference offline receipt-verifier and the relying-party client. The wire contract (`@meum/contracts`) is sourced as a
+published npm dependency, owned and published by `meum-id/api`. This repo carries no PII.
 
 ## Packages
 
-This is a Bun workspace monorepo. Three packages ship from `packages/`:
+This is a Bun workspace monorepo. Two client packages ship from `packages/`:
 
-| Package           | Path                 | Role                                                                               |
-| ----------------- | -------------------- | ---------------------------------------------------------------------------------- |
-| `@meum/contracts` | `packages/contracts` | Zod wire schemas: endpoint payloads, predicate grammar, error codes, ID prefixes.  |
-| `@meum/verify`    | `packages/verify`    | Zero-dependency offline receipt-verifier (WebCrypto ES256), fixtures, mock Worker. |
-| `@meum/sdk`       | `packages/sdk`       | Relying-party (RP) client: sessions, deep links, receipt verification.             |
+| Package        | Path              | Role                                                                               |
+| -------------- | ----------------- | ---------------------------------------------------------------------------------- |
+| `@meum/verify` | `packages/verify` | Zero-dependency offline receipt-verifier (WebCrypto ES256), fixtures, mock Worker. |
+| `@meum/sdk`    | `packages/sdk`    | Relying-party (RP) client: sessions, deep links, receipt verification.             |
 
-Packages ship TypeScript source directly (`exports` point at `src/`); Bun consumes them natively.
+Both packages ship TypeScript source directly (`exports` point at `src/`); Bun consumes them natively. They depend on
+`@meum/contracts` (`^0.2.0`), which resolves from the public npm registry.
 
-## Install (from git — not npm)
+## The wire contract
 
-The packages are **not published to npm**. Consume them by cloning this repo at a frozen `sdk-v*` tag and referencing
-the workspace packages via `file:` paths. A bare `git` dependency does not resolve a Bun workspace subpackage, so the
-clone + `file:` path is the supported route:
+`@meum/contracts` — the Zod wire schemas (endpoint payloads, predicate grammar, error codes, ID prefixes) — is owned and
+published by `meum-id/api`, which is its reference implementation. It is a public npm package (`@meum` scope): consumers
+resolve `@meum/contracts` from npm anonymously, with no auth token, no scoped `.npmrc`, and no private-registry config.
+The client packages here consume it as a normal versioned dependency; a contract bump surfaces as a dependency update.
+
+The standalone-contracts extraction trigger — extract `@meum/contracts` to its own repo when a second independent server
+implementation appears — is recorded in the canonical ADR in `meum-id/api`
+(`docs/adr/0001-contracts-ownership-and-extraction-trigger.md`).
+
+## Install
+
+The client packages are consumed by cloning this repo at a frozen `sdk-v*` tag and referencing them via `file:` paths; a
+bare `git` dependency does not resolve a Bun workspace subpackage. `@meum/contracts` resolves from npm, so no `file:`
+entry or override redirects the contract:
 
 ```bash
 git clone --branch sdk-v0.2.0 --depth 1 https://github.com/meum-id/sdk.git vendor/meum-sdk
@@ -30,21 +41,21 @@ git clone --branch sdk-v0.2.0 --depth 1 https://github.com/meum-id/sdk.git vendo
 // package.json of the consuming project
 {
   "dependencies": {
-    "@meum/contracts": "file:./vendor/meum-sdk/packages/contracts",
+    "@meum/contracts": "^0.2.0",
     "@meum/verify": "file:./vendor/meum-sdk/packages/verify",
     "@meum/sdk": "file:./vendor/meum-sdk/packages/sdk"
   },
-  // Required: the vendored packages reference each other with the
+  // Required: the vendored client packages reference `@meum/verify` with the
   // `workspace:*` protocol, which Bun cannot resolve outside the vendored
-  // workspace. The overrides redirect those specs to the same file: paths.
+  // workspace. This override redirects that spec to the file: path.
+  // `@meum/contracts` needs no override — it resolves from npm.
   "overrides": {
-    "@meum/contracts": "file:./vendor/meum-sdk/packages/contracts",
     "@meum/verify": "file:./vendor/meum-sdk/packages/verify"
   }
 }
 ```
 
-Then `bun install`.
+Then `bun install` (the public npm registry must be reachable).
 
 Each `sdk-v*` tag is a deliberate contract re-cut: consumers (`meum-id/api`, `meum-id/ios`) pick up a new contract by
 re-vendoring at the new tag. At `sdk-v0.2.0`, `KeyRevokeRequest` requires `proof` — a compact JWS signed by the device
@@ -121,15 +132,17 @@ bun test           # includes the <50KB gz bundle gate and Miniflare smoke test
 - **Runtime + tooling:** [Bun](https://bun.sh) (workspaces + test runner).
 - **Lint + format:** [Biome](https://biomejs.dev).
 - **Language:** TypeScript 5.6+, strict mode.
-- **Layout:** monorepo, `packages/{contracts,verify,sdk}`. `@meum/verify` has zero runtime dependencies by design.
+- **Layout:** monorepo, `packages/{verify,sdk}`. `@meum/verify` has zero runtime dependencies by design;
+  `@meum/contracts` is a published npm dependency owned by `meum-id/api`.
 
 ## Branch and release model
 
 - `main` is the stable, published branch. It receives code only via PR from `release/*` branches.
 - `dev` is the forever integration branch. Feature branches cut from `dev`, PR back to `dev` (squash merge).
 - Release branches cut from `origin/main`, cherry-pick the non-docs commits from `dev`, then PR to `main`.
-- Contract freezes are `sdk-vX.Y.Z` tags on `dev` merge commits. npm publishing is deferred; the `v*`-triggered
+- Client freezes are `sdk-vX.Y.Z` tags on `dev` merge commits. Client npm publishing is deferred; the `v*`-triggered
   `release.yml` stays inert until publishing is deliberately cleared (it will use npm trusted publishing / OIDC).
+  `@meum/contracts` publishes separately from `meum-id/api`.
 - Squash-only merges, delete-branch-on-merge.
 
 Full runbook: [`RELEASES.md`](RELEASES.md). Rationale: [`RELEASES-RATIONALE.md`](RELEASES-RATIONALE.md). Pre-cut and

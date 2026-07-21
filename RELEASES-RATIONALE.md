@@ -130,9 +130,10 @@ runs `npm publish --access public` per `packages/*`. The `--access public` flag 
 (`@meum/*`): npm defaults scoped packages to restricted, and a first publish without the flag fails or publishes
 privately. Equivalently, each `package.json` can carry `"publishConfig": {"access": "public"}`.
 
-The three packages version together for the Phase-0 demo, so the release bumps every `packages/*/package.json` to the
-same value in one commit. Inter-package dependency ranges (`@meum/contracts` consumed by `@meum/sdk`, etc.) bump in the
-same commit so a published set always resolves against itself.
+The two client packages version together for the Phase-0 demo, so the release bumps every `packages/*/package.json` to
+the same value in one commit. The inter-package range (`@meum/verify` consumed by `@meum/sdk`) bumps in the same commit
+so a published set always resolves against itself. The `@meum/contracts` range is not bumped here: the contract is owned
+and published by `meum-id/api` and consumed from npm, so its version tracks that repo's releases, not this one.
 
 ### npm auth: token vs OIDC
 
