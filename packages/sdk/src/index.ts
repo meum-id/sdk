@@ -7,6 +7,8 @@ export {
   MeumClient,
   type MeumClientOptions,
   type Predicate,
+  type RegisteredKeyDomain,
+  type RegisterKeyDomainInput,
   type VerifyReceiptOptions,
 } from './client';
 export { DEFAULT_VERIFY_BASE_URL, deepLink } from './deeplink';
@@ -21,4 +23,14 @@ export {
   MeumValidationError,
   parseErrorBody,
 } from './errors';
+export {
+  generateRpEncryptionKey,
+  publicEncryptionJwk,
+  RP_KEY_RETENTION_SECONDS,
+  type RpEncryptionKey,
+  type RpKeyringEntry,
+  type RpPrivateJwk,
+  type RpPublicJwk,
+  rotateRpKeyring,
+} from './rp-keys';
 export { toCamelCase, toSnakeCase } from './transform';
