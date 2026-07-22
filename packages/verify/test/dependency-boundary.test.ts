@@ -7,7 +7,7 @@ const sdkManifest = sdkManifestJson as Manifest;
 const verifyManifest = verifyManifestJson as Manifest;
 
 // @meum/verify's single runtime dependency is @hpke/core (vetted RFC 9180 HPKE
-// for the sealed-envelope path; KTD4 forbids hand-rolled crypto here);
+// for the sealed-envelope path; hand-rolled crypto is forbidden here);
 // @meum/sdk depends only on the two client packages. An HTTP/OpenAPI/server
 // dependency (hono, @hono/zod-openapi) leaking into either runtime surface is
 // the failure this guards against. Fail closed on any dep outside the allowlist.
