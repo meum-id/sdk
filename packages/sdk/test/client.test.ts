@@ -204,6 +204,55 @@ describe('verifyReceipt', () => {
   });
 });
 
+describe('registerKeyDomain', () => {
+  const WIRE_RESPONSE = { rp_id: 'rp_example_123', rp_key_domain: 'rp.example.com' };
+
+  test('POSTs the snake_case wire body with the bearer key and camelizes the response', async () => {
+    const { impl, calls } = stubFetch(() => jsonResponse(200, WIRE_RESPONSE));
+    const registered = await client(impl).registerKeyDomain({ keyDomain: 'rp.example.com', kid: 'rpk-2026' });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.url).toBe('https://api.meum.id/v1/rp/keys/domain');
+    const headers = calls[0]!.init?.headers as Record<string, string>;
+    expect(headers.authorization).toBe('Bearer mm_test_key');
+    expect(JSON.parse(calls[0]!.init?.body as string)).toEqual({
+      rp_key_domain: 'rp.example.com',
+      kid: 'rpk-2026',
+    });
+    expect(registered).toEqual({ rpId: 'rp_example_123', rpKeyDomain: 'rp.example.com' });
+  });
+
+  test('normalizes an https origin to its host and omits an absent kid', async () => {
+    const { impl, calls } = stubFetch(() => jsonResponse(200, WIRE_RESPONSE));
+    await client(impl).registerKeyDomain({ keyDomain: 'https://RP.Example.com' });
+    expect(JSON.parse(calls[0]!.init?.body as string)).toEqual({ rp_key_domain: 'rp.example.com' });
+  });
+
+  test('rejects a non-https scheme before any network call', async () => {
+    const { impl, calls } = stubFetch(() => jsonResponse(200, WIRE_RESPONSE));
+    await expect(client(impl).registerKeyDomain({ keyDomain: 'http://rp.example.com' })).rejects.toThrow();
+    expect(calls).toHaveLength(0);
+  });
+
+  test('rejects a path-bearing key-domain value before any network call', async () => {
+    const { impl, calls } = stubFetch(() => jsonResponse(200, WIRE_RESPONSE));
+    await expect(client(impl).registerKeyDomain({ keyDomain: 'https://rp.example.com/keys' })).rejects.toThrow();
+    expect(calls).toHaveLength(0);
+  });
+
+  test('maps an error envelope to MeumApiError', async () => {
+    const { impl } = stubFetch(() => envelope(403, 1003, 'auth'));
+    await expect(client(impl).registerKeyDomain({ keyDomain: 'rp.example.com' })).rejects.toBeInstanceOf(MeumApiError);
+  });
+
+  test('a malformed success body is a MeumNetworkError', async () => {
+    const { impl } = stubFetch(() => jsonResponse(200, { unexpected: true }));
+    await expect(client(impl).registerKeyDomain({ keyDomain: 'rp.example.com' })).rejects.toBeInstanceOf(
+      MeumNetworkError,
+    );
+  });
+});
+
 describe('init cost', () => {
   test('client construction is under 10ms', () => {
     const { impl } = stubFetch(() => jsonResponse(200, {}));

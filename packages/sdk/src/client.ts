@@ -23,6 +23,18 @@ export interface CreatedSession {
   expiresAt: string;
 }
 
+export interface RegisterKeyDomainInput {
+  /** Key-hosting domain (`rp.example.com`) or its https origin; must equal the RP's `return_url` origin. */
+  keyDomain: string;
+  /** Current encryption-key id, when the RP wants it recorded alongside the binding. */
+  kid?: string;
+}
+
+export interface RegisteredKeyDomain {
+  rpId: string;
+  rpKeyDomain: string;
+}
+
 export interface VerifyReceiptOptions {
   expectedAudience: string;
   expectedNonce: string;
@@ -69,6 +81,38 @@ function assertValidPredicate(predicate: Predicate): void {
   throw new MeumValidationError(
     `invalid predicate: expected one of [${NAMED_CLAIMS.join(', ')}] or { allOf: [1..${MAX_CONJUNCTION_SIZE} unique claims] }`,
   );
+}
+
+/**
+ * Normalizes a key-domain input to its bare host. Accepts `rp.example.com`
+ * or `https://rp.example.com`; rejects non-https schemes and any path,
+ * query, or fragment — the wire value is a host the device expands to
+ * `https://{host}/.well-known/meum-encryption-key.json`.
+ */
+function normalizeKeyDomain(keyDomain: string): string {
+  const candidate = keyDomain.includes('://') ? keyDomain : `https://${keyDomain}`;
+  let url: URL;
+  try {
+    url = new URL(candidate);
+  } catch {
+    throw new MeumValidationError(`invalid key domain: ${keyDomain}`);
+  }
+  if (url.protocol !== 'https:' || url.pathname !== '/' || url.search !== '' || url.hash !== '' || url.host === '') {
+    throw new MeumValidationError('keyDomain must be a bare https host with no path, query, or fragment');
+  }
+  return url.host;
+}
+
+function assertRegisteredKeyDomain(value: unknown): asserts value is RegisteredKeyDomain {
+  const registered = value as Partial<RegisteredKeyDomain> | null;
+  const valid =
+    registered !== null &&
+    typeof registered === 'object' &&
+    typeof registered.rpId === 'string' &&
+    typeof registered.rpKeyDomain === 'string';
+  if (!valid) {
+    throw new MeumNetworkError('malformed key-domain registration response');
+  }
 }
 
 function assertCreatedSession(value: unknown): asserts value is CreatedSession {
@@ -134,6 +178,35 @@ export class MeumClient {
 
   deepLink(sessionId: string): string {
     return deepLink(sessionId, this.verifyBaseUrl);
+  }
+
+  /**
+   * Binds this RP's `rp_id` to its key-hosting domain (`POST
+   * /v1/rp/keys/domain`). Meum stores only the binding — never the key: the
+   * device fetches the public JWK straight from the registered domain, which
+   * must serve a well-formed key before the binding becomes usable.
+   */
+  async registerKeyDomain(input: RegisterKeyDomainInput): Promise<RegisteredKeyDomain> {
+    const rpKeyDomain = normalizeKeyDomain(input.keyDomain);
+    let response: Response;
+    try {
+      response = await this.fetchImpl(`${this.baseUrl}/v1/rp/keys/domain`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${this.apiKey}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ rp_key_domain: rpKeyDomain, ...(input.kid ? { kid: input.kid } : {}) }),
+      });
+    } catch (cause) {
+      throw new MeumNetworkError('key-domain registration request failed', { cause });
+    }
+    if (!response.ok) {
+      throw await this.toApiError(response);
+    }
+    const registered = toCamelCase(await response.json());
+    assertRegisteredKeyDomain(registered);
+    return registered;
   }
 
   /**
