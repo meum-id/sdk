@@ -100,7 +100,13 @@ function normalizeKeyDomain(keyDomain: string): string {
   if (url.protocol !== 'https:' || url.pathname !== '/' || url.search !== '' || url.hash !== '' || url.host === '') {
     throw new MeumValidationError('keyDomain must be a bare https host with no path, query, or fragment');
   }
-  return url.host;
+  // The registration contract requires the full normalized https origin with a
+  // named host; the server rejects bare hosts and IP literals, so fail both
+  // here instead of on the wire.
+  if (url.hostname.startsWith('[') || /^\d{1,3}(\.\d{1,3}){3}$/.test(url.hostname)) {
+    throw new MeumValidationError('keyDomain must use a named host, not an IP literal');
+  }
+  return url.origin;
 }
 
 function assertRegisteredKeyDomain(value: unknown): asserts value is RegisteredKeyDomain {
