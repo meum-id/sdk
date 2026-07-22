@@ -205,7 +205,7 @@ describe('verifyReceipt', () => {
 });
 
 describe('registerKeyDomain', () => {
-  const WIRE_RESPONSE = { rp_id: 'rp_example_123', rp_key_domain: 'rp.example.com' };
+  const WIRE_RESPONSE = { rp_id: 'rp_example_123', rp_key_domain: 'https://rp.example.com' };
 
   test('POSTs the snake_case wire body with the bearer key and camelizes the response', async () => {
     const { impl, calls } = stubFetch(() => jsonResponse(200, WIRE_RESPONSE));
@@ -216,16 +216,35 @@ describe('registerKeyDomain', () => {
     const headers = calls[0]!.init?.headers as Record<string, string>;
     expect(headers.authorization).toBe('Bearer mm_test_key');
     expect(JSON.parse(calls[0]!.init?.body as string)).toEqual({
-      rp_key_domain: 'rp.example.com',
+      rp_key_domain: 'https://rp.example.com',
       kid: 'rpk-2026',
     });
-    expect(registered).toEqual({ rpId: 'rp_example_123', rpKeyDomain: 'rp.example.com' });
+    expect(registered).toEqual({ rpId: 'rp_example_123', rpKeyDomain: 'https://rp.example.com' });
   });
 
-  test('normalizes an https origin to its host and omits an absent kid', async () => {
+  test('emits the full normalized https origin and omits an absent kid', async () => {
     const { impl, calls } = stubFetch(() => jsonResponse(200, WIRE_RESPONSE));
     await client(impl).registerKeyDomain({ keyDomain: 'https://RP.Example.com' });
-    expect(JSON.parse(calls[0]!.init?.body as string)).toEqual({ rp_key_domain: 'rp.example.com' });
+    const wire = JSON.parse(calls[0]!.init?.body as string) as { rp_key_domain: string };
+    expect(wire).toEqual({ rp_key_domain: 'https://rp.example.com' });
+    // Contract invariant mirrored from the server's HttpsOriginSchema: the wire
+    // value must be its own canonical origin.
+    expect(wire.rp_key_domain).toBe(new URL(wire.rp_key_domain).origin);
+  });
+
+  test('preserves a non-default port in origin form', async () => {
+    const { impl, calls } = stubFetch(() => jsonResponse(200, WIRE_RESPONSE));
+    await client(impl).registerKeyDomain({ keyDomain: 'rp.example.com:8443' });
+    const wire = JSON.parse(calls[0]!.init?.body as string) as { rp_key_domain: string };
+    expect(wire.rp_key_domain).toBe('https://rp.example.com:8443');
+    expect(wire.rp_key_domain).toBe(new URL(wire.rp_key_domain).origin);
+  });
+
+  test('rejects an IP-literal host before any network call', async () => {
+    const { impl, calls } = stubFetch(() => jsonResponse(200, WIRE_RESPONSE));
+    await expect(client(impl).registerKeyDomain({ keyDomain: '203.0.113.7' })).rejects.toThrow();
+    await expect(client(impl).registerKeyDomain({ keyDomain: 'https://[2001:db8::1]' })).rejects.toThrow();
+    expect(calls).toHaveLength(0);
   });
 
   test('rejects a non-https scheme before any network call', async () => {
