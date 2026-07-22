@@ -80,13 +80,31 @@ checklist, [`RELEASES-POSTFLIGHT.md`](RELEASES-POSTFLIGHT.md) for post-tag verif
 cherry-pick to `release/vX.Y.Z` cut from `main`, PR to `main` (squash), annotated tag push triggers `release.yml` and
 publishes to npm.
 
+## Brand canon
+
+This repo inherits Control brand prose and domain vocabulary only (no `DESIGN.md` required). Symlinks assume a sibling
+`meum-control` clone:
+
+| Path | Role |
+| --- | --- |
+| [`VOICE.md`](VOICE.md) | Prose steering for package docs, README, and developer-facing copy |
+| [`brand/concepts.md`](brand/concepts.md) | Brand/domain glossary (Control → vault) |
+| [`PRODUCT.md`](PRODUCT.md) | Thin awareness of multi-surface positioning (optional read) |
+
+`brand/concepts.md` is not at the repo root because case-insensitive volumes collide with
+[`CONCEPTS.md`](CONCEPTS.md) (package/seam vocabulary). See [`brand/README.md`](brand/README.md).
+
+**Before writing developer docs, package README prose, API-facing copy, or framing that feeds `developers.meum.id`,
+load `VOICE.md` and `brand/concepts.md`.** `DESIGN.md` is optional. Do not invent competing lexicon or restore
+forbidden terms from VOICE.
+
 ## References
 
 - [`README.md`](README.md): what the packages are, the stack, hook activation.
 - [`RELEASES.md`](RELEASES.md): release runbook.
 - `meum-control` `docs/plans/2026-07-06-001-feat-meum-demo-backend-contracts-plan.md`: the plan this repo implements.
-- [`CONCEPTS.md`](CONCEPTS.md): shared domain vocabulary (entities, named processes, status concepts); relevant when
-  orienting to the codebase or discussing domain concepts.
+- [`CONCEPTS.md`](CONCEPTS.md): package/seam domain vocabulary (entities, named processes); not the brand glossary.
+- Brand canon: [`VOICE.md`](VOICE.md), [`brand/concepts.md`](brand/concepts.md); Control `brand/README.md`.
 - `docs/solutions/`: documented solutions to past problems (bugs, best practices, workflow patterns), organized by
   category with YAML frontmatter (`module`, `tags`, `problem_type`); a local symlink to a shared private corpus, present
   on dev workstations only. Search with `qmd query "<topic>" -c solutions -c meum` before implementing or debugging in a
