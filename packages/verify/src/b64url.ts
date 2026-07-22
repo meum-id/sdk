@@ -12,3 +12,12 @@ export function base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {
 export function base64UrlToUtf8(value: string): string {
   return new TextDecoder().decode(base64UrlToBytes(value));
 }
+
+/** RFC 4648 §5 unpadded base64url — the transport form of every envelope field. */
+export function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}

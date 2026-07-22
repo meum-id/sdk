@@ -1,7 +1,7 @@
 {
   "name": "@meum/verify",
   "version": "0.2.0",
-  "description": "Zero-dependency reference offline verifier for Meum receipts (WebCrypto ES256), plus fixtures and a mock Worker",
+  "description": "Reference offline verifier for Meum receipts (WebCrypto ES256 + HPKE sealed envelopes via @hpke/core, its single runtime dependency), plus fixtures and a mock Worker",
   "license": "Apache-2.0",
   "type": "module",
   "types": "./src/index.ts",
@@ -20,6 +20,9 @@
     "type": "git",
     "url": "https://github.com/meum-id/sdk",
     "directory": "packages/verify"
+  },
+  "dependencies": {
+    "@hpke/core": "^1.9.0"
   },
   "devDependencies": {
     "@meum/contracts": "^0.2.0",
