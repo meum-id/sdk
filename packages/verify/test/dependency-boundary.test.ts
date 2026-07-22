@@ -6,12 +6,13 @@ type Manifest = { dependencies?: Record<string, string>; devDependencies?: Recor
 const sdkManifest = sdkManifestJson as Manifest;
 const verifyManifest = verifyManifestJson as Manifest;
 
-// @meum/verify ships as a dependency-free offline verifier (zero runtime deps);
+// @meum/verify's single runtime dependency is @hpke/core (vetted RFC 9180 HPKE
+// for the sealed-envelope path; KTD4 forbids hand-rolled crypto here);
 // @meum/sdk depends only on the two client packages. An HTTP/OpenAPI/server
 // dependency (hono, @hono/zod-openapi) leaking into either runtime surface is
 // the failure this guards against. Fail closed on any dep outside the allowlist.
 const RUNTIME_ALLOWLIST: Record<string, Set<string>> = {
-  '@meum/verify': new Set(),
+  '@meum/verify': new Set(['@hpke/core']),
   '@meum/sdk': new Set(['@meum/contracts', '@meum/verify']),
 };
 
@@ -21,8 +22,9 @@ function forbiddenRuntimeDeps(name: string, deps: Record<string, string> | undef
 }
 
 describe('client dependency boundary', () => {
-  test('@meum/verify declares no runtime dependencies', () => {
+  test('@meum/verify declares exactly {@hpke/core} as runtime dependencies', () => {
     expect(forbiddenRuntimeDeps('@meum/verify', verifyManifest.dependencies)).toEqual([]);
+    expect(Object.keys(verifyManifest.dependencies ?? {})).toEqual(['@hpke/core']);
   });
 
   test('@meum/sdk runtime deps are a subset of {@meum/contracts, @meum/verify}', () => {

@@ -1,6 +1,16 @@
 import { base64UrlToBytes, base64UrlToUtf8 } from './b64url';
+import { assertRecipientPrivateJwk, computeJwkThumbprint, type EcPrivateJwk, openFromEnvelope } from './hpke';
 import type { Jwks, JwksResolver } from './jwks';
-import type { ReceiptHeader, ReceiptPayload } from './receipt-types';
+import {
+  HPKE_SUITE_ID,
+  RECEIPT_ENVELOPE_INFO,
+  RECEIPT_ENVELOPE_VERSION,
+  type ReceiptCallbackV2,
+  type ReceiptHeader,
+  type ReceiptPayload,
+  type ReceiptPayloadV2,
+  receiptEnvelopeAad,
+} from './receipt-types';
 
 export const VERIFY_REASONS = [
   'malformed_receipt',
@@ -13,9 +23,17 @@ export const VERIFY_REASONS = [
   'wrong_session',
   'wrong_nonce',
   'predicate_false',
+  'malformed_envelope',
+  'open_failed',
+  'thumbprint_mismatch',
+  'plaintext_not_accepted',
 ] as const;
 
 export type VerifyReason = (typeof VERIFY_REASONS)[number];
+
+export const RECEIPT_VERSIONS = [1, 2] as const;
+
+export type ReceiptVersion = (typeof RECEIPT_VERSIONS)[number];
 
 export interface VerifyOptions {
   /** Static JWKS document (e.g. a captured `jwks.json?kid=…` response). */
@@ -30,6 +48,10 @@ export interface VerifyOptions {
   expectedSessionId?: string;
   /** Verification time: Unix seconds or a Date. Defaults to the current time. */
   now?: number | Date;
+  /** The RP's P-256 private JWK; required to open a v2 sealed envelope. */
+  recipientKey?: EcPrivateJwk;
+  /** Receipt versions this RP accepts. Defaults to all of them (the rollout widen state). */
+  acceptedVersions?: readonly ReceiptVersion[];
 }
 
 export interface VerifyResult {
@@ -78,12 +100,139 @@ function isReceiptPayload(value: unknown): value is ReceiptPayload {
  * Offline receipt verification. No network access beyond the caller-supplied
  * JWKS resolver; no Meum backend call in this path.
  *
- * Checks, in order: compact-JWS shape, `alg=ES256` + `kid` present, key lookup
- * (JWKS or resolver), key `status=active`, ES256 signature (WebCrypto), then
- * `aud`, `exp`, `session_id` (when expected), `nonce`, and
- * `predicate_result === true`.
+ * A compact JWS string is a v1 plaintext receipt; a v2 callback body carries
+ * the sealed envelope plus the outer routing ids that bind as HPKE `aad`. The
+ * v2 path opens the envelope with `options.recipientKey`, then runs the same
+ * checks as v1 on the recovered JWS — compact-JWS shape, `alg=ES256` + `kid`
+ * present, key lookup (JWKS or resolver), key `status=active`, ES256
+ * signature (WebCrypto), then `aud`, `exp`, `session_id` (when expected),
+ * `nonce`, and `predicate_result === true` — followed by the outer/inner id
+ * match and the `rp_key_thumbprint` check against the opening key. One clock
+ * snapshot is taken at entry and threaded through open and verify.
+ *
+ * Never throws on attacker-controlled input (every failure is a reason code);
+ * throws `TypeError` only for caller misconfiguration (a missing or malformed
+ * `recipientKey` when a v2 envelope must be opened).
  */
-export async function verify(receipt: string, options: VerifyOptions): Promise<VerifyResult> {
+export async function verify(receipt: string | ReceiptCallbackV2, options: VerifyOptions): Promise<VerifyResult> {
+  const nowSeconds =
+    options.now === undefined
+      ? Date.now() / 1000
+      : options.now instanceof Date
+        ? options.now.getTime() / 1000
+        : options.now;
+  const accepted: readonly ReceiptVersion[] = options.acceptedVersions ?? RECEIPT_VERSIONS;
+
+  if (typeof receipt === 'string') {
+    if (!accepted.includes(1)) {
+      return fail('plaintext_not_accepted');
+    }
+    return verifyCompactJws(receipt, options, nowSeconds);
+  }
+  if (!accepted.includes(2)) {
+    // A v1-only verifier answers exactly as the pre-v2 verifier would have:
+    // an envelope object is simply not a receipt it can parse.
+    return fail('malformed_receipt');
+  }
+  return verifySealedCallback(receipt, options, nowSeconds);
+}
+
+async function verifySealedCallback(
+  callback: ReceiptCallbackV2,
+  options: VerifyOptions,
+  nowSeconds: number,
+): Promise<VerifyResult> {
+  if (!isSealedCallbackShape(callback)) {
+    return fail('malformed_envelope');
+  }
+  const recipientKey = options.recipientKey;
+  if (!recipientKey) {
+    throw new TypeError('@meum/verify: options.recipientKey is required to open a v2 sealed receipt');
+  }
+  assertRecipientPrivateJwk(recipientKey);
+
+  let innerJws: string;
+  try {
+    innerJws = await openFromEnvelope(
+      recipientKey,
+      callback.receipt,
+      RECEIPT_ENVELOPE_INFO,
+      receiptEnvelopeAad(callback.session_id, callback.nonce),
+    );
+  } catch {
+    return fail('open_failed');
+  }
+
+  const result = await verifyCompactJws(innerJws, options, nowSeconds);
+  if (!result.valid || !result.payload) {
+    return result;
+  }
+  const payload = result.payload;
+  // KTD2: the opened inner JWS must re-assert the outer routing ids, even
+  // when the caller did not pass expectedSessionId.
+  if (payload.session_id !== callback.session_id) {
+    return fail('wrong_session', payload);
+  }
+  if (payload.nonce !== callback.nonce) {
+    return fail('wrong_nonce', payload);
+  }
+  const thumbprint = (payload as Partial<ReceiptPayloadV2>).rp_key_thumbprint;
+  if (typeof thumbprint !== 'string') {
+    return fail('malformed_receipt', payload);
+  }
+  if (thumbprint !== (await computeJwkThumbprint(recipientKey))) {
+    return fail('thumbprint_mismatch', payload);
+  }
+  return result;
+}
+
+// AES-256-GCM appends a 16-byte tag, so no well-formed ct can be shorter.
+const GCM_TAG_BYTES = 16;
+// X9.63 uncompressed P-256 point: 0x04 tag byte plus two 32-byte coordinates.
+const ENC_POINT_BYTES = 65;
+const ENC_POINT_TAG = 0x04;
+
+function tryDecodeBase64Url(value: string): Uint8Array | null {
+  try {
+    return base64UrlToBytes(value);
+  } catch {
+    return null;
+  }
+}
+
+function isSealedCallbackShape(callback: unknown): callback is ReceiptCallbackV2 {
+  if (typeof callback !== 'object' || callback === null) {
+    return false;
+  }
+  const body = callback as Record<string, unknown>;
+  if (typeof body.session_id !== 'string' || body.session_id.length === 0) {
+    return false;
+  }
+  if (typeof body.nonce !== 'string' || body.nonce.length === 0) {
+    return false;
+  }
+  if (typeof body.receipt !== 'object' || body.receipt === null) {
+    return false;
+  }
+  const envelope = body.receipt as Record<string, unknown>;
+  if (envelope.v !== RECEIPT_ENVELOPE_VERSION || envelope.suite !== HPKE_SUITE_ID) {
+    return false;
+  }
+  if (typeof envelope.kid !== 'string' || envelope.kid.length === 0) {
+    return false;
+  }
+  if (typeof envelope.enc !== 'string' || typeof envelope.ct !== 'string') {
+    return false;
+  }
+  const enc = tryDecodeBase64Url(envelope.enc);
+  if (!enc || enc.length !== ENC_POINT_BYTES || enc[0] !== ENC_POINT_TAG) {
+    return false;
+  }
+  const ct = tryDecodeBase64Url(envelope.ct);
+  return ct !== null && ct.length >= GCM_TAG_BYTES;
+}
+
+async function verifyCompactJws(receipt: string, options: VerifyOptions, nowSeconds: number): Promise<VerifyResult> {
   const segments = receipt.split('.');
   if (segments.length !== 3) {
     return fail('malformed_receipt');
@@ -139,12 +288,6 @@ export async function verify(receipt: string, options: VerifyOptions): Promise<V
     return fail('wrong_audience', payload);
   }
 
-  const nowSeconds =
-    options.now === undefined
-      ? Date.now() / 1000
-      : options.now instanceof Date
-        ? options.now.getTime() / 1000
-        : options.now;
   if (nowSeconds >= payload.exp) {
     return fail('expired', payload);
   }

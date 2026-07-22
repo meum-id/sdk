@@ -1,4 +1,12 @@
-export { base64UrlToBytes, base64UrlToUtf8 } from './b64url';
+export { base64UrlToBytes, base64UrlToUtf8, bytesToBase64Url } from './b64url';
+export type { EcPrivateJwk, EcPublicJwk } from './hpke';
+export {
+  assertRecipientPrivateJwk,
+  assertRecipientPublicJwk,
+  computeJwkThumbprint,
+  openFromEnvelope,
+  sealToRecipient,
+} from './hpke';
 export type { DeviceJwk, DeviceJwksEntry, Jwks, JwksResolver } from './jwks';
 export type {
   DecodedReceipt,
@@ -18,5 +26,5 @@ export {
   RECEIPT_ENVELOPE_VERSION,
   receiptEnvelopeAad,
 } from './receipt-types';
-export type { VerifyOptions, VerifyReason, VerifyResult } from './verify';
-export { VERIFY_REASONS, verify } from './verify';
+export type { ReceiptVersion, VerifyOptions, VerifyReason, VerifyResult } from './verify';
+export { RECEIPT_VERSIONS, VERIFY_REASONS, verify } from './verify';
