@@ -17,9 +17,9 @@ The client repo for the Meum Phase-0 age-verification demo. It ships two npm pac
 - `@meum/sdk` (`packages/sdk`): relying-party (RP) client.
 
 The wire contract `@meum/contracts` is owned and published by `meum-id/api` (its reference implementation) and consumed
-here from npm as a versioned dependency (`^0.2.0`, public `@meum` scope, resolved anonymously). Extract `@meum/contracts`
-to its own standalone repo when a second independent server implementation appears; the canonical ADR lives in
-`meum-id/api` (`docs/adr/0001-contracts-ownership-and-extraction-trigger.md`).
+here from npm as a versioned dependency (`^0.2.0`, public `@meum` scope, resolved anonymously). Extract
+`@meum/contracts` to its own standalone repo when a second independent server implementation appears; the canonical ADR
+lives in `meum-id/api` (`docs/adr/0001-contracts-ownership-and-extraction-trigger.md`).
 
 ## Public boundary and PII
 
@@ -89,4 +89,6 @@ publishes to npm.
   orienting to the codebase or discussing domain concepts.
 - `docs/solutions/`: documented solutions to past problems (bugs, best practices, workflow patterns), organized by
   category with YAML frontmatter (`module`, `tags`, `problem_type`); a local symlink to a shared private corpus, present
-  on dev workstations only.
+  on dev workstations only. Search with `qmd query "<topic>" -c solutions -c meum` before implementing or debugging in a
+  documented area. Whenever invoking `qmd` from this repo, always include the `meum` collection (`-c meum`) in addition
+  to any other collections.
