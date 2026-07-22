@@ -13,6 +13,15 @@ export function base64UrlToUtf8(value: string): string {
   return new TextDecoder().decode(base64UrlToBytes(value));
 }
 
+/** Decodes unpadded base64url, returning `null` instead of throwing on invalid input. */
+export function tryDecodeBase64Url(value: string): Uint8Array<ArrayBuffer> | null {
+  try {
+    return base64UrlToBytes(value);
+  } catch {
+    return null;
+  }
+}
+
 /** RFC 4648 §5 unpadded base64url — the transport form of every envelope field. */
 export function bytesToBase64Url(bytes: Uint8Array): string {
   let binary = '';

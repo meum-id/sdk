@@ -1,4 +1,4 @@
-import { base64UrlToBytes, base64UrlToUtf8 } from './b64url';
+import { base64UrlToBytes, base64UrlToUtf8, tryDecodeBase64Url } from './b64url';
 import { assertRecipientPrivateJwk, computeJwkThumbprint, type EcPrivateJwk, openFromEnvelope } from './hpke';
 import type { Jwks, JwksResolver } from './jwks';
 import {
@@ -168,7 +168,7 @@ async function verifySealedCallback(
     return result;
   }
   const payload = result.payload;
-  // KTD2: the opened inner JWS must re-assert the outer routing ids, even
+  // The opened inner JWS must re-assert the outer routing ids, even
   // when the caller did not pass expectedSessionId.
   if (payload.session_id !== callback.session_id) {
     return fail('wrong_session', payload);
@@ -191,14 +191,6 @@ const GCM_TAG_BYTES = 16;
 // X9.63 uncompressed P-256 point: 0x04 tag byte plus two 32-byte coordinates.
 const ENC_POINT_BYTES = 65;
 const ENC_POINT_TAG = 0x04;
-
-function tryDecodeBase64Url(value: string): Uint8Array | null {
-  try {
-    return base64UrlToBytes(value);
-  } catch {
-    return null;
-  }
-}
 
 function isSealedCallbackShape(callback: unknown): callback is ReceiptCallbackV2 {
   if (typeof callback !== 'object' || callback === null) {

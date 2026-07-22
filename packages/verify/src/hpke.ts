@@ -5,7 +5,7 @@
  */
 
 import type { CipherSuite } from '@hpke/core';
-import { base64UrlToBytes, bytesToBase64Url } from './b64url';
+import { base64UrlToBytes, bytesToBase64Url, tryDecodeBase64Url } from './b64url';
 import { type EnvelopeV2, HPKE_SUITE } from './receipt-types';
 
 /** RP encryption public key as published at the RP's key endpoint. */
@@ -56,11 +56,7 @@ function b64urlByteLength(value: string | undefined): number {
   if (typeof value !== 'string') {
     return -1;
   }
-  try {
-    return base64UrlToBytes(value).length;
-  } catch {
-    return -1;
-  }
+  return tryDecodeBase64Url(value)?.length ?? -1;
 }
 
 /**
