@@ -390,23 +390,35 @@ describe('verify: v2 malformed envelopes', () => {
   });
 });
 
-describe('verify: accepted-version set', () => {
-  test('v1 verifies when the accepted set explicitly includes 1', async () => {
+// The accepted-version set is the authoritative downgrade-enforcement point:
+// these four rows are the mixed-fleet state table (device receipt version x RP
+// accepted set). A pre-v2 device cannot observe meum's enc_required flag and
+// always sends v1, so this check — not the device refusal — is the security
+// boundary. No combination is a stuck-pending session (R9, R10, R11).
+describe('verify: accepted-version set (mixed-fleet matrix)', () => {
+  test('new device + keyless RP (migration widen): v1 verifies when the set includes 1', async () => {
     const result = await verify(VALID_RECEIPT, { ...baseOptions, acceptedVersions: [1, 2] });
     expect(result.valid).toBe(true);
   });
 
-  test('v1 -> plaintext_not_accepted when the set is v2-only (AE6)', async () => {
+  test('old device + required RP: v1 -> plaintext_not_accepted when the set is v2-only (AE6)', async () => {
     const result = await verify(VALID_RECEIPT, { ...baseOptions, acceptedVersions: [2] });
     expect(result.valid).toBe(false);
     expect(result.reason).toBe('plaintext_not_accepted');
   });
 
-  test('v2 envelope under a v1-only set behaves like the legacy verifier: malformed_receipt', async () => {
+  test('v2 receipt + old verifier: envelope under a v1-only set answers like the legacy verifier (malformed_receipt)', async () => {
     const { privateJwk, callback } = await sealedFixture();
     const result = await verify(callback, { ...baseOptions, acceptedVersions: [1], recipientKey: privateJwk });
     expect(result.valid).toBe(false);
     expect(result.reason).toBe('malformed_receipt');
+  });
+
+  test('converged fleet: a sealed v2 receipt under a v2-only set verifies', async () => {
+    const { privateJwk, callback } = await sealedFixture();
+    const result = await verify(callback, { ...baseOptions, acceptedVersions: [2], recipientKey: privateJwk });
+    expect(result.valid).toBe(true);
+    expect(result.reason).toBeNull();
   });
 });
 
