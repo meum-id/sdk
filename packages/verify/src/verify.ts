@@ -50,7 +50,15 @@ export interface VerifyOptions {
   now?: number | Date;
   /** The RP's P-256 private JWK; required to open a v2 sealed envelope. */
   recipientKey?: EcPrivateJwk;
-  /** Receipt versions this RP accepts. Defaults to all of them (the rollout widen state). */
+  /**
+   * Receipt versions this RP accepts. Defaults to all of them (the rollout
+   * widen state). This set is the authoritative downgrade-enforcement point and
+   * the single source of truth for what the RP accepts: narrowing it to `[2]`
+   * is what actually rejects a plaintext receipt (`plaintext_not_accepted`).
+   * meum's per-RP `enc_required` flag is not the boundary — a pre-v2 device
+   * cannot observe it and always sends v1 — so the device-side refusal is a
+   * UX/early-fail optimization, not enforcement. Only this check is.
+   */
   acceptedVersions?: readonly ReceiptVersion[];
 }
 
