@@ -9,5 +9,7 @@ export * from './invalid-wrong-nonce';
 export * from './issuer-jwks';
 export * from './sealed-credential';
 export * from './sealed-credential-types';
+export * from './sealed-receipt-parity';
+export * from './sealed-receipt-parity-types';
 export * from './test-keys';
 export * from './valid-receipt';
