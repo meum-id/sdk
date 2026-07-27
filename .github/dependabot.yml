@@ -19,6 +19,8 @@ updates:
       day: monday
       time: "09:00"
       timezone: America/Chicago
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     reviewers:
       - brettdavies
@@ -29,6 +31,12 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # A TypeScript major (5.x -> 7.x) is a reviewed migration, never an
+      # automatic bump; the caret range already blocks it, this stops the PR.
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
   - package-ecosystem: github-actions
     directory: "/"
     target-branch: dev
@@ -37,6 +45,8 @@ updates:
       day: monday
       time: "09:00"
       timezone: America/Chicago
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 3
     reviewers:
       - brettdavies
