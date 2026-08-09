@@ -106,7 +106,7 @@ forbidden terms from VOICE.
 - [`CONCEPTS.md`](CONCEPTS.md): package/seam domain vocabulary (entities, named processes); not the brand glossary.
 - Brand canon: [`VOICE.md`](VOICE.md), [`brand/concepts.md`](brand/concepts.md); Control `brand/README.md`.
 - `docs/solutions/`: documented solutions to past problems (bugs, best practices, workflow patterns), organized by
-  category with YAML frontmatter (`module`, `tags`, `problem_type`); a local symlink to a shared private corpus, present
-  on dev workstations only. Search with `qmd query "<topic>" -c solutions -c meum` before implementing or debugging in a
-  documented area. Whenever invoking `qmd` from this repo, always include the `meum` collection (`-c meum`) in addition
-  to any other collections.
+  category with YAML frontmatter (`module`, `tags`, `problem_type`); when present, a local symlink to a shared archive
+  of past solutions, on dev workstations only. Search prior solutions with `qmd query "<topic>" -c solutions -c meum`
+  before implementing or debugging in a documented area. Whenever invoking `qmd` from this repo, always include both the
+  `solutions` and `meum` collections (`-c solutions -c meum`) in addition to any other collections the query needs.
