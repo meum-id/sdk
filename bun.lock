@@ -12,7 +12,7 @@
     },
     "packages/sdk": {
       "name": "@meum/sdk",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "@meum/contracts": "^0.2.0",
         "@meum/verify": "workspace:*",
@@ -20,7 +20,7 @@
     },
     "packages/verify": {
       "name": "@meum/verify",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "@hpke/core": "^1.9.0",
       },

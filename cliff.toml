@@ -1,0 +1,45 @@
+[changelog]
+header = """
+# Changelog\n
+All notable changes to this project will be documented in this file.\n
+"""
+body = """
+{% if version %}\
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+    ## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | upper_first }}
+    {% for commit in commits %}
+        - {{ commit.message | split(pat="\n") | first | upper_first }}\
+            {% if commit.remote.username %} by @{{ commit.remote.username }}{%- endif %}\
+            {% if commit.remote.pr_number %} in \
+              [#{{ commit.remote.pr_number }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/pull/{{ commit.remote.pr_number }}){%- endif %}
+    {%- endfor %}
+{% endfor %}\n
+"""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+# Only unprefixed `vX.Y.Z` tags mark releases; the legacy `sdk-v*` tags are not
+# release boundaries for the changelog.
+tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+commit_parsers = [
+  # The v0.1.0 freeze and its install-recipe fix ship in the sdk-v0.1.0 tag and
+  # are documented under that section; keep them out of later version sections.
+  { message = "^feat\\(sdk\\): freeze the v0.1.0 contract set", skip = true },
+  { message = "^fix\\(docs\\): add the overrides block to the file", skip = true },
+  { message = "^feat", group = "Added" },
+  { message = "^fix", group = "Fixed" },
+  { message = "^docs", group = "Documentation" },
+  { message = "^perf", group = "Changed" },
+  { message = "^refactor", group = "Changed" },
+  { message = ".*", group = "Changed" },
+]
+
+[remote.github]
+owner = "meum-id"
+repo = "sdk"

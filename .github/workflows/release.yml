@@ -8,10 +8,12 @@
 # publishing each package under packages/* to the @meum scope with public
 # access. The `github-release` job then creates the release from the tag.
 #
-# Defensive by design: the product scaffolding (package.json, workspace
-# packages, build scripts) is added later by another agent per the plan. Every
-# publish step guards on the relevant file and no-ops with a message when the
-# scaffolding is absent, so a tag push against the bare repo is a green no-op.
+# Defensive by design: every publish step guards on the relevant file and
+# no-ops with a message when the scaffolding is absent, so a tag push against
+# the bare repo is a green no-op. A cut without the NPM_TOKEN secret is a
+# tag-only cut: the publish loop skips npm with exit 0 and the GitHub Release
+# is still created. Setting NPM_TOKEN makes the same pipeline publish for
+# real.
 #
 # TODO before first real publish:
 #   - Add the NPM_TOKEN secret (npm automation token, publish scope for @meum):
@@ -112,11 +114,16 @@ jobs:
 
       - name: Publish packages to npm
         env:
-          # TODO: add the NPM_TOKEN secret (see header). Publish 401s without it.
+          # Without the NPM_TOKEN secret (see header) the cut is tag-only: the
+          # loop below skips npm and github-release still runs.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ ! -d packages ]; then
             echo "scaffolding not present yet (no packages/ directory); skipping publish"
+            exit 0
+          fi
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "NPM_TOKEN is not set; tag-only cut: skipping npm publish"
             exit 0
           fi
           for pkg in packages/*/; do

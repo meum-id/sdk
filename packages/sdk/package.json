@@ -1,6 +1,6 @@
 {
   "name": "@meum/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Relying-party client for the Meum verification API: session creation, deep links, offline receipt verification",
   "license": "Apache-2.0",
   "type": "module",
