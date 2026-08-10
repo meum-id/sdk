@@ -6,9 +6,7 @@ import {
   FIXTURE_NOW,
   FIXTURE_RP_ID,
   FIXTURE_SESSION_ID,
-  SEALED_RECEIPT_PARITY,
 } from '../src/fixtures/index';
-import type { SealedParityCase } from '../src/fixtures/sealed-receipt-parity-types';
 import { computeJwkThumbprint, openFromEnvelope } from '../src/hpke';
 import {
   HPKE_SUITE_ID,
@@ -18,6 +16,8 @@ import {
   receiptEnvelopeAad,
 } from '../src/receipt-types';
 import { verify } from '../src/verify';
+import { SEALED_RECEIPT_PARITY } from './sealed-receipt-parity';
+import type { SealedParityCase } from './sealed-receipt-parity-types';
 
 const { meta, device_jwk, recipients, cases } = SEALED_RECEIPT_PARITY;
 

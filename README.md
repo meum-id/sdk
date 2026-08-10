@@ -1,17 +1,18 @@
 # Meum SDK
 
-Public, Apache-2.0 licensed client repo for the Meum Phase-0 age-verification demo. This repo holds a zero-dependency
-reference offline receipt-verifier and the relying-party client. The wire contract (`@meum/contracts`) is sourced as a
-published npm dependency, owned and published by `meum-id/api`. This repo carries no PII.
+Public, Apache-2.0 licensed client repo for the Meum Phase-0 age-verification demo. This repo holds a reference offline
+receipt-verifier with a single runtime dependency (`@hpke/core`) and the relying-party client. The wire contract
+(`@meum/contracts`) is sourced as a published npm dependency, owned and published by `meum-id/api`. This repo carries no
+PII.
 
 ## Packages
 
 This is a Bun workspace monorepo. Two client packages ship from `packages/`:
 
-| Package        | Path              | Role                                                                               |
-| -------------- | ----------------- | ---------------------------------------------------------------------------------- |
-| `@meum/verify` | `packages/verify` | Zero-dependency offline receipt-verifier (WebCrypto ES256), fixtures, mock Worker. |
-| `@meum/sdk`    | `packages/sdk`    | Relying-party (RP) client: sessions, deep links, receipt verification.             |
+| Package        | Path              | Role                                                                                  |
+| -------------- | ----------------- | ------------------------------------------------------------------------------------- |
+| `@meum/verify` | `packages/verify` | Offline receipt-verifier (WebCrypto ES256, HPKE sealed receipts) and shared fixtures. |
+| `@meum/sdk`    | `packages/sdk`    | Relying-party (RP) client: sessions, deep links, receipt verification.                |
 
 Both packages ship TypeScript source directly (`exports` point at `src/`); Bun consumes them natively. They depend on
 `@meum/contracts` (`^0.2.0`), which resolves from the public npm registry.
@@ -29,12 +30,12 @@ implementation appears — is recorded in the canonical ADR in `meum-id/api`
 
 ## Install
 
-The client packages are consumed by cloning this repo at a frozen `sdk-v*` tag and referencing them via `file:` paths; a
+The client packages are consumed by cloning this repo at a frozen `v*` tag and referencing them via `file:` paths; a
 bare `git` dependency does not resolve a Bun workspace subpackage. `@meum/contracts` resolves from npm, so no `file:`
 entry or override redirects the contract:
 
 ```bash
-git clone --branch sdk-v0.2.0 --depth 1 https://github.com/meum-id/sdk.git vendor/meum-sdk
+git clone --branch v0.3.0 --depth 1 https://github.com/meum-id/sdk.git vendor/meum-sdk
 ```
 
 ```jsonc
@@ -57,10 +58,10 @@ git clone --branch sdk-v0.2.0 --depth 1 https://github.com/meum-id/sdk.git vendo
 
 Then `bun install` (the public npm registry must be reachable).
 
-Each `sdk-v*` tag is a deliberate contract re-cut: consumers (`meum-id/api`, `meum-id/ios`) pick up a new contract by
-re-vendoring at the new tag. At `sdk-v0.2.0`, `KeyRevokeRequest` requires `proof` — a compact JWS signed by the device
-key being revoked, with claims per `RevokeProofPayload` (`kid`, `iat`, `jti`, `purpose`); the backend rejects a
-proofless revoke.
+Each `v*` tag is a deliberate contract re-cut: consumers (`meum-id/api`, `meum-id/ios`) pick up a new contract by
+re-vendoring at the new tag. At `v0.3.0`, `KeyRevokeRequest` requires `proof`: a compact JWS signed by the device key
+being revoked, with claims per `RevokeProofPayload` (`kid`, `iat`, `jti`, `purpose`); the backend rejects a proofless
+revoke.
 
 ## Verifying a receipt offline
 
@@ -90,6 +91,12 @@ if (result.valid) {
 The RP-side rules: the receipt is RP-bound (`aud`), single-session (`session_id` + `nonce`), short-lived (`exp`), and
 only `predicate_result: true` verifies. Track seen nonces yourself to reject replays.
 
+Version 2 receipts are sealed: the signed receipt arrives inside an HPKE envelope (`HPKE-P256-SHA256-A256GCM`, via
+`@hpke/core`, the verifier's single runtime dependency). Pass `recipientKey`, the RP's P-256 private JWK, and `verify`
+opens the envelope before checking the inner receipt; the outer session id and nonce bind as HPKE `aad`, so a sealed
+receipt only opens for the session it was issued to. `acceptedVersions` narrows which receipt versions the RP accepts,
+and the sealing primitives (`sealToRecipient`, `openFromEnvelope`) are exported for tests and tooling.
+
 The higher-level client wraps the same verifier with a per-kid JWKS cache (1h, force-refresh on a cached miss):
 
 ```ts
@@ -110,13 +117,15 @@ const result = await meum.verifyReceipt(receiptJwt, {
 
 ## Fixtures and the mock Worker
 
-`@meum/verify` ships deterministic stubs so downstream tracks develop with no live backend:
+`@meum/verify` ships deterministic fixtures, and the sdk repo carries a mock Worker, so downstream tracks develop with
+no live backend:
 
 - `@meum/verify/fixtures`: a valid receipt; invalid variants (bad signature, wrong `aud`, expired, wrong nonce,
   `predicate_result:false`, unknown `kid`); the device and issuer JWKS; a sealed-credential envelope with its matching
   X25519 test keypair; and the test signing keys.
-- Mock Worker: every API endpoint served from fixtures. Run with `bun packages/verify/src/mock-worker.ts` (port 8788,
-  override with `PORT`), or load `@meum/verify/mock-worker` under Miniflare/workerd.
+- Mock Worker: every API endpoint served from fixtures. It lives in the sdk repo's test harness
+  (`packages/verify/test/mock-worker.ts`), outside the published package surface. Run with `bun
+  packages/verify/test/mock-worker.ts` (port 8788, override with `PORT`), or bundle that file under Miniflare/workerd.
 
 ## Development
 
@@ -132,7 +141,7 @@ bun test           # includes the <50KB gz bundle gate and Miniflare smoke test
 - **Runtime + tooling:** [Bun](https://bun.sh) (workspaces + test runner).
 - **Lint + format:** [Biome](https://biomejs.dev).
 - **Language:** TypeScript 5.6+, strict mode.
-- **Layout:** monorepo, `packages/{verify,sdk}`. `@meum/verify` has zero runtime dependencies by design;
+- **Layout:** monorepo, `packages/{verify,sdk}`. `@meum/verify` declares exactly one runtime dependency, `@hpke/core`;
   `@meum/contracts` is a published npm dependency owned by `meum-id/api`.
 
 ## Branch and release model
@@ -140,9 +149,10 @@ bun test           # includes the <50KB gz bundle gate and Miniflare smoke test
 - `main` is the stable, published branch. It receives code only via PR from `release/*` branches.
 - `dev` is the forever integration branch. Feature branches cut from `dev`, PR back to `dev` (squash merge).
 - Release branches cut from `origin/main`, cherry-pick the non-docs commits from `dev`, then PR to `main`.
-- Client freezes are `sdk-vX.Y.Z` tags on `dev` merge commits. Client npm publishing is deferred; the `v*`-triggered
-  `release.yml` stays inert until publishing is deliberately cleared (it will use npm trusted publishing / OIDC).
-  `@meum/contracts` publishes separately from `meum-id/api`.
+- Client freezes are annotated `vX.Y.Z` tags on `main`, cut through `release/*` branches per the runbook. A tag push
+  triggers `release.yml`, which publishes each package to npm and requires the `NPM_TOKEN` secret (or npm trusted
+  publishing / OIDC); a cut without the token fails the publish job rather than no-opping. `@meum/contracts` publishes
+  separately from `meum-id/api`.
 - Squash-only merges, delete-branch-on-merge.
 
 Full runbook: [`RELEASES.md`](RELEASES.md). Rationale: [`RELEASES-RATIONALE.md`](RELEASES-RATIONALE.md). Pre-cut and

@@ -162,6 +162,19 @@ Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/re
 commit is on `main` and that the package version matches the tag, builds each package, runs `npm publish --access
 public` for each `packages/*` under the `@meum` scope, and creates the GitHub Release for the tag.
 
+### Release mode: real publish or tag-only
+
+Decide the release mode before pushing the tag. **A cut without `NPM_TOKEN` fails the pipeline; it does not no-op.** The
+workflow's only no-op guard is the bare repo with no `packages/` directory. With the workspace packages present, the
+publish loop runs `npm publish` with an empty token, gets a 401, and exits 1; `github-release` (`needs: publish`) is
+then skipped, so neither the npm packages nor the GitHub Release land. The two deterministic modes:
+
+- **Real publish:** set the `NPM_TOKEN` secret (see § Required secrets) before the tag push. A first publish also
+  requires the fixture-key check in [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md) § Public-repo hygiene.
+- **Tag-only:** rework `release.yml` so the publish loop exits 0 on an empty token and `github-release` runs
+  independently of publish success, then push the tag. The cut produces the tag and the GitHub Release; nothing reaches
+  npm.
+
 ### After publish: sync `dev` with the release
 
 Once the packages are live on npm, bring the release bookkeeping (version bumps, `bun.lock`, `CHANGELOG.md`) back to
@@ -217,8 +230,8 @@ gh api -X PUT repos/meum-id/sdk/rulesets/<id> --input .github/rulesets/protect-m
 | `NPM_TOKEN` | npm automation token with publish scope for `@meum` | `gh secret set NPM_TOKEN --repo meum-id/sdk` |
 
 `release.yml` reads `NPM_TOKEN` as `NODE_AUTH_TOKEN`. Alternatively switch to npm Trusted Publishing (OIDC): set
-`id-token: write` on the publish job and drop the token. Until the secret exists, the publish step 401s; the workflow is
-a skeleton and no-ops on the bare repo.
+`id-token: write` on the publish job and drop the token. Until the secret exists, the publish step 401s and the pipeline
+fails; see § Release mode: real publish or tag-only.
 
 ### Distribution channels
 
