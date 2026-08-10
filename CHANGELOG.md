@@ -37,7 +37,7 @@ All notable changes to this project will be documented in this file.
 - Correct README and the release gates to state `@meum/verify`'s single runtime dependency (`@hpke/core`), document HPKE sealed-receipt verification, and use unprefixed `v*` tag examples. by @brettdavies in [#42](https://github.com/meum-id/sdk/pull/42)
 - Document the real-publish vs tag-only release modes in RELEASES.md and add a first-publish PREFLIGHT check that the fixture private keys are test-only.
 
-**Full Changelog**: [v0.1.0...v0.3.0](https://github.com/meum-id/sdk/compare/v0.1.0...v0.3.0)
+**Full Changelog**: [sdk-v0.1.0...v0.3.0](https://github.com/meum-id/sdk/compare/sdk-v0.1.0...v0.3.0)
 
 ## [0.1.0] - 2026-07-07
 

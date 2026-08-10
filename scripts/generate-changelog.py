@@ -146,8 +146,15 @@ def extract_version_section(content: str, version: str) -> str:
 
 
 def pr_numbers_from_section(section: str) -> list[int]:
+    """Collect PR numbers from both bullet forms.
+
+    git-cliff's skeleton emits `(#N)`; the expanded section rewrites those
+    into `[#N](...)` links. Matching both keeps re-runs against an
+    already-expanded section from silently finding zero PRs and skipping
+    the refresh.
+    """
     seen: dict[int, None] = {}
-    for m in re.finditer(r"\(#(\d+)\)", section):
+    for m in re.finditer(r"[\(\[]#(\d+)[\)\]]", section):
         seen[int(m.group(1))] = None
     return sorted(seen)
 
@@ -255,6 +262,19 @@ def collect_entries(
     return aggregated
 
 
+def resolve_version_tag(version: str) -> str | None:
+    """Return the existing git tag for a released version.
+
+    Tries the current unprefixed scheme (v0.1.0), then the legacy prefix
+    (sdk-v0.1.0), then a bare tag. Returns None when no tag exists, so the
+    caller omits the compare link rather than emitting a dead ref.
+    """
+    for candidate in (f"v{version}", f"sdk-v{version}", version):
+        if run(["git", "tag", "-l", candidate]).stdout.strip():
+            return candidate
+    return None
+
+
 def rewrite_version_section(
     changelog: Path,
     version: str,
@@ -285,18 +305,18 @@ def rewrite_version_section(
 
     new_section = "\n".join(pieces) + "\n"
 
-    tag_prefix = "v" if tag.startswith("v") else ""
     prev_match = re.search(
         rf"## \[{re.escape(version)}\].*?\n## \[([^\]]+)\]", content, re.DOTALL
     )
     if prev_match:
-        prev = prev_match.group(1)
-        new_section += (
-            f"\n**Full Changelog**: "
-            f"[{tag_prefix}{prev}...{tag_prefix}{version}]"
-            f"(https://github.com/{owner}/{repo}/compare/"
-            f"{tag_prefix}{prev}...{tag_prefix}{version})\n"
-        )
+        prev_tag = resolve_version_tag(prev_match.group(1))
+        if prev_tag:
+            new_section += (
+                f"\n**Full Changelog**: "
+                f"[{prev_tag}...{tag}]"
+                f"(https://github.com/{owner}/{repo}/compare/"
+                f"{prev_tag}...{tag})\n"
+            )
 
     section_re = re.compile(
         rf"## \[{re.escape(version)}\].*?(?=\n## \[|\Z)", re.DOTALL
@@ -349,9 +369,9 @@ def main() -> int:
 
     # Duplicate-section guard: skip the git-cliff prepend when a section for
     # this tag already exists, so re-running against an already-released tag
-    # doesn't append a second copy of the same version. In dry-run mode we
-    # still need the PR-body expansion below to run so it can compare against
-    # the current file.
+    # doesn't append a second copy of the same version. The PR-body expansion
+    # below still runs either way, so an existing section is refreshed from
+    # the current PR bodies (and dry-run has something real to compare).
     section_header_re = re.compile(
         rf"^## \[{re.escape(version)}\]", re.MULTILINE
     )
@@ -359,8 +379,10 @@ def main() -> int:
         changelog.exists() and bool(section_header_re.search(changelog.read_text()))
     )
     if duplicate_section and not args.dry_run:
-        print(f"CHANGELOG.md already has a [{version}] section; skipping prepend")
-        return 0
+        print(
+            f"CHANGELOG.md already has a [{version}] section; "
+            "skipping prepend, refreshing from PR bodies"
+        )
 
     try:
         if not duplicate_section:
