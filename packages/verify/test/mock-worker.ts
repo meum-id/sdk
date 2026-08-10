@@ -2,7 +2,7 @@
  * Mock Worker: every Meum endpoint served from deterministic fixtures, so the
  * device and RP tracks develop with no live backend. Workers-shaped
  * (`export default { fetch }`, runs under Miniflare) and directly runnable:
- * `bun packages/verify/src/mock-worker.ts`.
+ * `bun packages/verify/test/mock-worker.ts`.
  */
 import {
   FIXTURE_CREATED_AT,
@@ -20,10 +20,10 @@ import {
   FIXTURE_SESSION_URL,
   FIXTURE_TIMESTAMP,
   FIXTURE_VERIFICATION_URL,
-} from './fixtures/constants';
-import { DEVICE_JWKS } from './fixtures/device-jwks';
-import { ISSUER_JWKS } from './fixtures/issuer-jwks';
-import { SEALED_CREDENTIAL } from './fixtures/sealed-credential';
+} from '../src/fixtures/constants';
+import { DEVICE_JWKS } from '../src/fixtures/device-jwks';
+import { ISSUER_JWKS } from '../src/fixtures/issuer-jwks';
+import { SEALED_CREDENTIAL } from '../src/fixtures/sealed-credential';
 
 interface ErrorBody {
   code: number;

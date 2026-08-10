@@ -7,8 +7,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./fixtures": "./src/fixtures/index.ts",
-    "./mock-worker": "./src/mock-worker.ts"
+    "./fixtures": "./src/fixtures/index.ts"
   },
   "files": [
     "src"

@@ -9,10 +9,10 @@ PII.
 
 This is a Bun workspace monorepo. Two client packages ship from `packages/`:
 
-| Package        | Path              | Role                                                                                     |
-| -------------- | ----------------- | ---------------------------------------------------------------------------------------- |
-| `@meum/verify` | `packages/verify` | Offline receipt-verifier (WebCrypto ES256, HPKE sealed receipts), fixtures, mock Worker. |
-| `@meum/sdk`    | `packages/sdk`    | Relying-party (RP) client: sessions, deep links, receipt verification.                   |
+| Package        | Path              | Role                                                                                  |
+| -------------- | ----------------- | ------------------------------------------------------------------------------------- |
+| `@meum/verify` | `packages/verify` | Offline receipt-verifier (WebCrypto ES256, HPKE sealed receipts) and shared fixtures. |
+| `@meum/sdk`    | `packages/sdk`    | Relying-party (RP) client: sessions, deep links, receipt verification.                |
 
 Both packages ship TypeScript source directly (`exports` point at `src/`); Bun consumes them natively. They depend on
 `@meum/contracts` (`^0.2.0`), which resolves from the public npm registry.
@@ -117,13 +117,15 @@ const result = await meum.verifyReceipt(receiptJwt, {
 
 ## Fixtures and the mock Worker
 
-`@meum/verify` ships deterministic stubs so downstream tracks develop with no live backend:
+`@meum/verify` ships deterministic fixtures, and the sdk repo carries a mock Worker, so downstream tracks develop with
+no live backend:
 
 - `@meum/verify/fixtures`: a valid receipt; invalid variants (bad signature, wrong `aud`, expired, wrong nonce,
   `predicate_result:false`, unknown `kid`); the device and issuer JWKS; a sealed-credential envelope with its matching
   X25519 test keypair; and the test signing keys.
-- Mock Worker: every API endpoint served from fixtures. Run with `bun packages/verify/src/mock-worker.ts` (port 8788,
-  override with `PORT`), or load `@meum/verify/mock-worker` under Miniflare/workerd.
+- Mock Worker: every API endpoint served from fixtures. It lives in the sdk repo's test harness
+  (`packages/verify/test/mock-worker.ts`), outside the published package surface. Run with `bun
+  packages/verify/test/mock-worker.ts` (port 8788, override with `PORT`), or bundle that file under Miniflare/workerd.
 
 ## Development
 
