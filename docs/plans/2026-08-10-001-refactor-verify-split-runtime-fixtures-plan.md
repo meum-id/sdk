@@ -1,8 +1,10 @@
 ---
 title: "refactor: evict the sdk-internal test harness from @meum/verify's published surface and ship v0.3.0"
 date: 2026-08-10
+date_modified: 2026-08-10
 type: refactor
-status: implementation-ready
+status: done
+implemented: packages/verify + release infra (PRs #42, #43, #44; dev 21fd94c, main 8531edb, sync ad8ab81; tag v0.3.0, tag-only cut)
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: implementation-ready
 execution: code
@@ -390,18 +392,19 @@ tag.
 
 ## Open Questions
 
-- **Real publish vs tag-only today (KTD7).** Set `NPM_TOKEN` for a real npm publish, or rework `release.yml` for a tag +
-  GitHub-Release-only cut? A no-token cut red-fails as written. If real, PREFLIGHT must confirm the `src/fixtures/` test
-  keys are used by no deployed demo/staging issuer or device, since the first `v0.3.0` publish ships `@meum/verify`
-  (fixtures included) to public npm for the first time. Default: decide during PREFLIGHT; the eviction + docs land
-  regardless.
-- **CHANGELOG range (KTD6, decided-with-caveat).** `cliff.toml` must pin the range to span from `sdk-v0.1.0`, or
-  git-cliff ranges from the newer `sdk-v0.2.0` tag and drops #28–#35. Confirm the actual range on the `release/v0.3.0`
-  branch with `--dry-run`; hand-backfill the 0.2.0 bullets into the release-PR `## Changelog` if the PRs carry no `##
-  Changelog` block.
-- **meum-sites `mock-worker` usage.** Sites currently vendors `mock-worker.ts`. Dropping the `./mock-worker` export is
-  safe for the api; confirm sites does not import it before the sites re-vendor (a sites-repo decision, flagged for the
-  coordinated follow-on).
+All resolved at execution:
+
+- **Real publish vs tag-only (KTD7): tag-only, by human decision.** `release.yml`'s publish loop exits 0 with a logged
+  skip when `NODE_AUTH_TOKEN` is empty, so `github-release` still lands; `NPM_TOKEN` selects the mode. Nothing reached
+  npm (both packages 404 on the registry). The fixture-keys check returned **not confirmed**, so any future real publish
+  stays held behind it.
+- **CHANGELOG range (KTD6): resolved differently than assumed.** On the cherry-pick-assembled release lineage no tag is
+  reachable from HEAD at all, so git-cliff's default range spans full history; `cliff.toml` adds skip rules for the two
+  0.1.0-era commits (already documented under the 0.1.0 section) and a `tag_pattern` restricted to unprefixed `v*`.
+  Every in-range PR carried a `## Changelog` block, so the 0.2.0 bullets surfaced without backfill.
+- **meum-sites `mock-worker` usage: resolved.** Sites imports its own frozen vendored copy by file path
+  (`scripts/mock-api.ts`), not the `@meum/verify/mock-worker` export, so the export drop breaks nothing today; sites
+  must adapt the path import at its `v0.3.0` re-vendor (coordinated follow-on).
 - **Semver (decided).** 0.3.0 (minor) matches the dropped `./mock-worker` export + trimmed `./fixtures` barrel; see
   KTD4.
 
@@ -427,3 +430,15 @@ tag.
 - `ce-doc-review` round 1 (feasibility, adversarial, security, product-lens, scope-guardian, coherence): the release
   blockers (root version, cliff.toml, no-token-fail), the surgical-vs-full-split verdict adopted as KTD1, and the
   CHANGELOG range correction.
+
+---
+
+## Reconciliation
+
+(against meum-sdk origin/main @ 8531edbb99070eda40b721d613e552457f09e064, tag v0.3.0)
+
+| Unit | State   | PR  | Commit           | Note                                                                                                                                                                                                                                                                                                         |
+| ---- | ------- | --- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| U1   | landed  | #42 | `21fd94c` (dev)  | Harness under `packages/verify/test/`; exports `.` + `./fixtures`; runtime deps exactly `@hpke/core`; 125/125 green.                                                                                                                                                                                         |
+| U2   | landed  | #42 | `21fd94c` (dev)  | Zero-dependency claims replaced with `@hpke/core` in README/AGENTS/PREFLIGHT/POSTFLIGHT; HPKE documented; `v*` tag examples.                                                                                                                                                                                 |
+| U3   | drifted | #43 | `8531edb` (main) | Landed with two spec deviations: no tag is reachable on the cherry-pick release lineage, so `cliff.toml` uses full-history range + skip rules instead of a from-`sdk-v0.1.0` pin; the KTD7 tag-only `release.yml` mode landed via a direct release-branch commit (`cecca85`) after the human chose tag-only. |
