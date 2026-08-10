@@ -1,32 +1,34 @@
-# CI skeleton for the Bun + Biome + TypeScript monorepo.
+# CI for the Bun + Biome + TypeScript monorepo: install, lint, typecheck, test.
 #
-# Defensive by design: the product scaffolding (package.json, biome.json,
-# tsconfig, workspace packages) is added later by another agent per the plan.
-# Every build step guards on `package.json` and no-ops with a message when the
-# scaffolding is absent, so this workflow is green on the bare repo and starts
-# doing real work the moment the build lands.
+# The test suite includes the @meum/sdk bundle-size gate (<50KB gzipped) and
+# the Miniflare smoke test for the mock Worker.
 #
-# Not wired as a required status check while it is a skeleton. Connect the
-# `bun run lint` / `bun run typecheck` scripts in package.json, confirm the
-# checks report, then add the `ci / Lint, typecheck, test` context to
-# .github/rulesets/protect-main.json.
+# Not wired as a required status check yet. Once the checks report, add the
+# `ci / Lint, typecheck, test` context to .github/rulesets/protect-main.json.
 name: CI
 
 on:
   pull_request:
-  push:
-    branches: [dev, main]
+    branches: [main, dev]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   ci:
     name: Lint, typecheck, test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -34,33 +36,13 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: |
-          if [ -f package.json ]; then
-            bun install --frozen-lockfile
-          else
-            echo "scaffolding not present yet (no package.json); skipping install"
-          fi
+        run: bun install --frozen-lockfile
 
       - name: Lint (Biome)
-        run: |
-          if [ -f package.json ]; then
-            bun run lint
-          else
-            echo "scaffolding not present yet (no package.json); skipping lint"
-          fi
+        run: bun run lint
 
       - name: Typecheck (tsc)
-        run: |
-          if [ -f package.json ]; then
-            bun run typecheck
-          else
-            echo "scaffolding not present yet (no package.json); skipping typecheck"
-          fi
+        run: bun run typecheck
 
       - name: Test
-        run: |
-          if [ -f package.json ]; then
-            bun test
-          else
-            echo "scaffolding not present yet (no package.json); skipping tests"
-          fi
+        run: bun test

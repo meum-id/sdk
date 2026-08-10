@@ -1,0 +1,22 @@
+{
+  "name": "meum-sdk",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "build": "bun run typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
+    "bun-types": "^1.3.11",
+    "typescript": "^5.9.3"
+  }
+}

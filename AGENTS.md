@@ -1,6 +1,6 @@
 ---
 name: meum-sdk
-description: Public Apache-2.0 Meum SDK monorepo. Zod wire contracts, a zero-dependency reference offline receipt-verifier, and the relying-party client, published to npm under @meum.
+description: Public Apache-2.0 Meum SDK client monorepo. A reference offline receipt-verifier (single runtime dependency @hpke/core) and the relying-party client, published to npm under @meum. Consumes the @meum/contracts wire contract from npm (owned by meum-id/api).
 homepage: https://github.com/meum-id/sdk
 repository: https://github.com/meum-id/sdk
 ---
@@ -11,12 +11,16 @@ Agent instructions for the public Meum SDK monorepo. Read this before writing co
 
 ## What this repo is
 
-The published contract seam for the Meum Phase-0 age-verification demo. It ships three npm packages under the `@meum`
-scope:
+The client repo for the Meum Phase-0 age-verification demo. It ships two npm packages under the `@meum` scope:
 
-- `@meum/contracts` (`packages/contracts`): Zod wire schemas for the request/response contract.
-- `@meum/verify` (`packages/verify`): zero-dependency reference offline receipt-verifier plus receipt/JWKS types.
+- `@meum/verify` (`packages/verify`): reference offline receipt-verifier plus receipt/JWKS types; its only runtime
+  dependency is `@hpke/core`.
 - `@meum/sdk` (`packages/sdk`): relying-party (RP) client.
+
+The wire contract `@meum/contracts` is owned and published by `meum-id/api` (its reference implementation) and consumed
+here from npm as a versioned dependency (`^0.2.0`, public `@meum` scope, resolved anonymously). Extract
+`@meum/contracts` to its own standalone repo when a second independent server implementation appears; the canonical ADR
+lives in `meum-id/api` (`docs/adr/0001-contracts-ownership-and-extraction-trigger.md`).
 
 ## Public boundary and PII
 
@@ -35,8 +39,9 @@ surface, schema shapes, and the receipt/JWKS format. Do not fetch it from here; 
 - **Runtime + tooling:** Bun (workspaces + test runner). Use `bun install`, `bun run <script>`, `bun test`.
 - **Lint + format:** Biome (`biome check --write`). One config at the repo root drives every package.
 - **Language:** TypeScript 5.6+, strict mode.
-- **Layout:** monorepo, `packages/{contracts,verify,sdk}`. `@meum/verify` stays zero-dependency by design; do not add
-  runtime dependencies to it.
+- **Layout:** monorepo, `packages/{verify,sdk}`. `@meum/verify` declares exactly one runtime dependency (`@hpke/core`)
+  by design; do not add more. `@meum/contracts` is a published npm dependency owned by `meum-id/api`, not a local
+  package.
 - **Commits:** Conventional Commits. No AI attribution in commits or PR bodies.
 
 ## Infrastructure is pre-seeded: connect to it, do not recreate it
@@ -49,8 +54,8 @@ hooks and CI rather than replacing them:
   `build` scripts in the root `package.json` so these steps do real work. Once green, add the `ci / Lint, typecheck,
   test` context to `.github/rulesets/protect-main.json` to make it a required check.
 - **Release** (`.github/workflows/release.yml`) publishes each `packages/*` to npm on a `v*` tag. Add the `NPM_TOKEN`
-  secret (or switch to npm Trusted Publishing / OIDC) and ensure each `package.json` sets
-  `"publishConfig": {"access": "public"}` before the first real tag.
+  secret (or switch to npm Trusted Publishing / OIDC) and ensure each `package.json` sets `"publishConfig": {"access":
+  "public"}` before the first real tag.
 - **Hooks** (`scripts/hooks/pre-commit`, `scripts/hooks/pre-push`) mirror CI locally and no-op until `package.json`
   exists. Activate with `git config core.hooksPath scripts/hooks`.
 - **Release quad** (`RELEASES.md`, `RELEASES-RATIONALE.md`, `RELEASES-PREFLIGHT.md`, `RELEASES-POSTFLIGHT.md`) plus
@@ -77,8 +82,33 @@ checklist, [`RELEASES-POSTFLIGHT.md`](RELEASES-POSTFLIGHT.md) for post-tag verif
 cherry-pick to `release/vX.Y.Z` cut from `main`, PR to `main` (squash), annotated tag push triggers `release.yml` and
 publishes to npm.
 
+## Brand canon
+
+This repo inherits Control brand prose and domain vocabulary only (no `DESIGN.md` required). Symlinks assume a sibling
+`meum-control` clone:
+
+| Path                                     | Role                                                               |
+| ---------------------------------------- | ------------------------------------------------------------------ |
+| [`VOICE.md`](VOICE.md)                   | Prose steering for package docs, README, and developer-facing copy |
+| [`brand/concepts.md`](brand/concepts.md) | Brand/domain glossary (Control → vault)                            |
+| [`PRODUCT.md`](PRODUCT.md)               | Thin awareness of multi-surface positioning (optional read)        |
+
+`brand/concepts.md` is not at the repo root because case-insensitive volumes collide with [`CONCEPTS.md`](CONCEPTS.md)
+(package/seam vocabulary). See [`brand/README.md`](brand/README.md).
+
+**Before writing developer docs, package README prose, API-facing copy, or framing that feeds `developers.meum.id`, load
+`VOICE.md` and `brand/concepts.md`.** `DESIGN.md` is optional. Do not invent competing lexicon or restore forbidden
+terms from VOICE.
+
 ## References
 
 - [`README.md`](README.md): what the packages are, the stack, hook activation.
 - [`RELEASES.md`](RELEASES.md): release runbook.
 - `meum-control` `docs/plans/2026-07-06-001-feat-meum-demo-backend-contracts-plan.md`: the plan this repo implements.
+- [`CONCEPTS.md`](CONCEPTS.md): package/seam domain vocabulary (entities, named processes); not the brand glossary.
+- Brand canon: [`VOICE.md`](VOICE.md), [`brand/concepts.md`](brand/concepts.md); Control `brand/README.md`.
+- `docs/solutions/`: documented solutions to past problems (bugs, best practices, workflow patterns), organized by
+  category with YAML frontmatter (`module`, `tags`, `problem_type`); when present, a local symlink to a shared archive
+  of past solutions, on dev workstations only. Search prior solutions with `qmd query "<topic>" -c solutions -c meum`
+  before implementing or debugging in a documented area. Whenever invoking `qmd` from this repo, always include both the
+  `solutions` and `meum` collections (`-c solutions -c meum`) in addition to any other collections the query needs.

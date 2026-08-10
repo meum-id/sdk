@@ -8,7 +8,7 @@ lives in [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md). Post-tag verificati
 feature branch -> PR to dev (squash merge)
               -> cherry-pick to release/* branch cut from origin/main
               -> PR to main (squash merge)
-              -> annotated v* tag push -> release.yml publishes to npm
+              -> annotated vX.Y.Z tag push -> release.yml verifies -> publishes to npm -> creates the GitHub Release
 ```
 
 Direct commits to `dev` or `main` are not permitted for shipped code: every change has a PR number in its squash commit
@@ -110,17 +110,24 @@ the remote on merge. `dev` is untouched.
 
 ### Version bump
 
-The three packages version together for the Phase-0 demo. Bump each `packages/*/package.json` `"version"` (and any
-inter-package `dependencies` / `peerDependencies` ranges) to the new value, then regenerate the changelog:
+The two client packages version together for the Phase-0 demo. Bump each `packages/*/package.json` `"version"` (and any
+inter-package `dependencies` / `peerDependencies` ranges) to the new value, then regenerate the changelog. The
+`@meum/contracts` dependency range is not bumped here — it tracks the contract published from `meum-id/api`:
 
 ```bash
 # On the release/v<version> branch:
 # ... edit packages/*/package.json version fields to <version> ...
-bun install                       # refresh bun.lock to match the bumped versions
+# bun install does not rewrite the workspaces version fields in bun.lock;
+# edit them directly, then prove the lock is still accepted (the CI check):
+sed -i 's/"version": "<old>",/"version": "<new>",/' bun.lock
+bun install --frozen-lockfile
 scripts/generate-changelog.py     # detects <version> from the branch name
 git add packages/*/package.json bun.lock CHANGELOG.md
 git commit -m "release: v<version>"
 ```
+
+A forgotten lock edit cannot land: `test/lock-versions.test.ts` fails `bun test` (CI and the pre-push hook) whenever a
+`packages/*/package.json` version disagrees with its `workspaces` entry in `bun.lock`.
 
 ### Cherry-pick conflicts on guarded paths
 
@@ -151,8 +158,19 @@ git tag -a -m "Release v<version>" v<version>
 git push origin main --tags
 ```
 
-Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/release.yml`, which builds each package
-and runs `npm publish --access public` for each `packages/*` under the `@meum` scope.
+Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/release.yml`, which verifies the tag
+commit is on `main` and that the package version matches the tag, builds each package, runs `npm publish --access
+public` for each `packages/*` under the `@meum` scope, and creates the GitHub Release for the tag.
+
+### Release mode: real publish or tag-only
+
+Decide the release mode before pushing the tag. The `NPM_TOKEN` secret selects it: the same pipeline publishes for real
+when the token is set and is tag-only when it is not. The two deterministic modes:
+
+- **Real publish:** set the `NPM_TOKEN` secret (see § Required secrets) before the tag push. A first publish also
+  requires the fixture-key check in [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md) § Public-repo hygiene.
+- **Tag-only:** push the tag without `NPM_TOKEN`. The publish loop logs the skip and exits 0, and `github-release`
+  creates the GitHub Release from the tag; nothing reaches npm.
 
 ### After publish: sync `dev` with the release
 
@@ -204,19 +222,22 @@ gh api -X PUT repos/meum-id/sdk/rulesets/<id> --input .github/rulesets/protect-m
 
 ### Required secrets
 
-| Secret      | Purpose                                              | Set with                                   |
-| ----------- | --------------------------------------------------- | ------------------------------------------ |
+| Secret      | Purpose                                             | Set with                                     |
+| ----------- | --------------------------------------------------- | -------------------------------------------- |
 | `NPM_TOKEN` | npm automation token with publish scope for `@meum` | `gh secret set NPM_TOKEN --repo meum-id/sdk` |
 
 `release.yml` reads `NPM_TOKEN` as `NODE_AUTH_TOKEN`. Alternatively switch to npm Trusted Publishing (OIDC): set
-`id-token: write` on the publish job and drop the token. Until the secret exists, the publish step 401s; the workflow is
-a skeleton and no-ops on the bare repo.
+`id-token: write` on the publish job and drop the token. Without the secret, the publish step skips npm and the cut is
+tag-only; see § Release mode: real publish or tag-only.
 
 ### Distribution channels
 
-| Channel | Package(s)                                     | How                                        |
-| ------- | ---------------------------------------------- | ------------------------------------------ |
-| npm     | `@meum/contracts`, `@meum/verify`, `@meum/sdk` | `npm publish --access public` on a `v*` tag |
+| Channel | Package(s)                  | How                                             |
+| ------- | --------------------------- | ----------------------------------------------- |
+| npm     | `@meum/verify`, `@meum/sdk` | `npm publish --access public` on a `vX.Y.Z` tag |
+
+`@meum/contracts` is not published from this repo — it is owned and published by `meum-id/api`. This repo consumes it
+from npm as a dependency.
 
 ### First publish (one-time)
 
