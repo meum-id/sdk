@@ -33,8 +33,9 @@ Run immediately after the tag push triggers `release.yml`.
 - [ ] **Tarball contents correct.** `npm pack @meum/<pkg>@<version>` (or inspect on npmjs.com) contains the built
   output, type declarations, LICENSE, and README, with no stray source, tests, or secrets.
 
-- [ ] **`@meum/verify` stays zero-dependency.** `npm view @meum/verify dependencies` is empty. The zero-dependency
-  guarantee is part of its published contract; a leaked transitive dependency is a release-blocking regression.
+- [ ] **`@meum/verify` declares exactly `@hpke/core`.** `npm view @meum/verify dependencies` lists `@hpke/core` and
+  nothing else. The single-dependency surface is part of its published contract; any additional dependency is a
+  release-blocking regression.
 
 - [ ] **Fresh-install smoke on a clean environment.** In a throwaway directory (not a polluted local project):
 

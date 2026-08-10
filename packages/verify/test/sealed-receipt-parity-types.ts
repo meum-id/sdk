@@ -1,6 +1,6 @@
-import type { EcPrivateJwk } from '../hpke';
-import type { DeviceJwk } from '../jwks';
-import type { ReceiptCallbackV2 } from '../receipt-types';
+import type { EcPrivateJwk } from '../src/hpke';
+import type { DeviceJwk } from '../src/jwks';
+import type { ReceiptCallbackV2 } from '../src/receipt-types';
 
 /**
  * Envelope bindings as the device-side sealer (meum-ios `ReceiptSealer`)

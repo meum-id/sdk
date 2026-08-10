@@ -1,6 +1,6 @@
 ---
 name: meum-sdk
-description: Public Apache-2.0 Meum SDK client monorepo. A zero-dependency reference offline receipt-verifier and the relying-party client, published to npm under @meum. Consumes the @meum/contracts wire contract from npm (owned by meum-id/api).
+description: Public Apache-2.0 Meum SDK client monorepo. A reference offline receipt-verifier (single runtime dependency @hpke/core) and the relying-party client, published to npm under @meum. Consumes the @meum/contracts wire contract from npm (owned by meum-id/api).
 homepage: https://github.com/meum-id/sdk
 repository: https://github.com/meum-id/sdk
 ---
@@ -13,7 +13,8 @@ Agent instructions for the public Meum SDK monorepo. Read this before writing co
 
 The client repo for the Meum Phase-0 age-verification demo. It ships two npm packages under the `@meum` scope:
 
-- `@meum/verify` (`packages/verify`): zero-dependency reference offline receipt-verifier plus receipt/JWKS types.
+- `@meum/verify` (`packages/verify`): reference offline receipt-verifier plus receipt/JWKS types; its only runtime
+  dependency is `@hpke/core`.
 - `@meum/sdk` (`packages/sdk`): relying-party (RP) client.
 
 The wire contract `@meum/contracts` is owned and published by `meum-id/api` (its reference implementation) and consumed
@@ -38,8 +39,9 @@ surface, schema shapes, and the receipt/JWKS format. Do not fetch it from here; 
 - **Runtime + tooling:** Bun (workspaces + test runner). Use `bun install`, `bun run <script>`, `bun test`.
 - **Lint + format:** Biome (`biome check --write`). One config at the repo root drives every package.
 - **Language:** TypeScript 5.6+, strict mode.
-- **Layout:** monorepo, `packages/{verify,sdk}`. `@meum/verify` stays zero-dependency by design; do not add runtime
-  dependencies to it. `@meum/contracts` is a published npm dependency owned by `meum-id/api`, not a local package.
+- **Layout:** monorepo, `packages/{verify,sdk}`. `@meum/verify` declares exactly one runtime dependency (`@hpke/core`)
+  by design; do not add more. `@meum/contracts` is a published npm dependency owned by `meum-id/api`, not a local
+  package.
 - **Commits:** Conventional Commits. No AI attribution in commits or PR bodies.
 
 ## Infrastructure is pre-seeded: connect to it, do not recreate it
@@ -85,18 +87,18 @@ publishes to npm.
 This repo inherits Control brand prose and domain vocabulary only (no `DESIGN.md` required). Symlinks assume a sibling
 `meum-control` clone:
 
-| Path | Role |
-| --- | --- |
-| [`VOICE.md`](VOICE.md) | Prose steering for package docs, README, and developer-facing copy |
-| [`brand/concepts.md`](brand/concepts.md) | Brand/domain glossary (Control → vault) |
-| [`PRODUCT.md`](PRODUCT.md) | Thin awareness of multi-surface positioning (optional read) |
+| Path                                     | Role                                                               |
+| ---------------------------------------- | ------------------------------------------------------------------ |
+| [`VOICE.md`](VOICE.md)                   | Prose steering for package docs, README, and developer-facing copy |
+| [`brand/concepts.md`](brand/concepts.md) | Brand/domain glossary (Control → vault)                            |
+| [`PRODUCT.md`](PRODUCT.md)               | Thin awareness of multi-surface positioning (optional read)        |
 
-`brand/concepts.md` is not at the repo root because case-insensitive volumes collide with
-[`CONCEPTS.md`](CONCEPTS.md) (package/seam vocabulary). See [`brand/README.md`](brand/README.md).
+`brand/concepts.md` is not at the repo root because case-insensitive volumes collide with [`CONCEPTS.md`](CONCEPTS.md)
+(package/seam vocabulary). See [`brand/README.md`](brand/README.md).
 
-**Before writing developer docs, package README prose, API-facing copy, or framing that feeds `developers.meum.id`,
-load `VOICE.md` and `brand/concepts.md`.** `DESIGN.md` is optional. Do not invent competing lexicon or restore
-forbidden terms from VOICE.
+**Before writing developer docs, package README prose, API-facing copy, or framing that feeds `developers.meum.id`, load
+`VOICE.md` and `brand/concepts.md`.** `DESIGN.md` is optional. Do not invent competing lexicon or restore forbidden
+terms from VOICE.
 
 ## References
 

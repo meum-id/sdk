@@ -21,7 +21,7 @@ import {
   FIXTURE_SESSION_ID,
   FIXTURE_UNKNOWN_KID,
 } from '../src/fixtures/index';
-import { handleRequest } from '../src/mock-worker';
+import { handleRequest } from './mock-worker';
 
 const BASE = 'https://mock.meum.test';
 
@@ -144,7 +144,7 @@ describe('mock worker under Miniflare (workerd)', () => {
 
   test('serves the fixture session and JWKS', async () => {
     const bundle = await Bun.build({
-      entrypoints: [new URL('../src/mock-worker.ts', import.meta.url).pathname],
+      entrypoints: [new URL('./mock-worker.ts', import.meta.url).pathname],
       target: 'browser',
       format: 'esm',
     });
