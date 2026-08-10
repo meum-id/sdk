@@ -1,7 +1,7 @@
 {
   "name": "@meum/verify",
   "version": "0.2.0",
-  "description": "Reference offline verifier for Meum receipts (WebCrypto ES256 + HPKE sealed envelopes via @hpke/core, its single runtime dependency), plus fixtures and a mock Worker",
+  "description": "Reference offline verifier for Meum receipts (WebCrypto ES256 + HPKE sealed envelopes via @hpke/core, its single runtime dependency), plus fixtures",
   "license": "Apache-2.0",
   "type": "module",
   "types": "./src/index.ts",
