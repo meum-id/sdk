@@ -1,3 +1,9 @@
+# Local sibling-clone symlinks, created per machine and never committed:
+# docs/solutions -> ~/dev/solutions-docs and docs/plans -> ~/dev/meum-control/docs/plans.
+# The real content lives in those sibling repos; see AGENTS.md.
+/docs/solutions
+/docs/plans
+
 # Logs
 logs
 *.log
