@@ -267,7 +267,9 @@ def resolve_version_tag(version: str) -> str | None:
 
     The existence check keeps the compare link from referencing a tag that
     does not exist (e.g. the first release, with no prior tag); the caller
-    omits the link instead of emitting a dead ref.
+    omits the link instead of emitting a dead ref. Repos with historical
+    tags under another naming scheme should rename those tags to `v*`
+    rather than widen this lookup.
     """
     candidate = f"v{version}"
     if run(["git", "tag", "-l", candidate]).stdout.strip():
