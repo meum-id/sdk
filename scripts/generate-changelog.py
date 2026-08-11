@@ -154,8 +154,8 @@ def pr_numbers_from_section(section: str) -> list[int]:
     the refresh.
     """
     seen: dict[int, None] = {}
-    for m in re.finditer(r"[\(\[]#(\d+)[\)\]]", section):
-        seen[int(m.group(1))] = None
+    for m in re.finditer(r"\(#(\d+)\)|\[#(\d+)\]", section):
+        seen[int(m.group(1) or m.group(2))] = None
     return sorted(seen)
 
 
@@ -263,15 +263,15 @@ def collect_entries(
 
 
 def resolve_version_tag(version: str) -> str | None:
-    """Return the existing git tag for a released version.
+    """Return the `v`-prefixed git tag for a released version, or None.
 
-    Tries the current unprefixed scheme (v0.1.0), then the legacy prefix
-    (sdk-v0.1.0), then a bare tag. Returns None when no tag exists, so the
-    caller omits the compare link rather than emitting a dead ref.
+    The existence check keeps the compare link from referencing a tag that
+    does not exist (e.g. the first release, with no prior tag); the caller
+    omits the link instead of emitting a dead ref.
     """
-    for candidate in (f"v{version}", f"sdk-v{version}", version):
-        if run(["git", "tag", "-l", candidate]).stdout.strip():
-            return candidate
+    candidate = f"v{version}"
+    if run(["git", "tag", "-l", candidate]).stdout.strip():
+        return candidate
     return None
 
 

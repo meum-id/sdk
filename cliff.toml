@@ -28,7 +28,7 @@ filter_unconventional = false
 # release boundaries for the changelog.
 tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
 commit_parsers = [
-  # The v0.1.0 freeze and its install-recipe fix ship in the sdk-v0.1.0 tag and
+  # The v0.1.0 freeze and its install-recipe fix ship in the v0.1.0 tag and
   # are documented under that section; keep them out of later version sections.
   { message = "^feat\\(sdk\\): freeze the v0.1.0 contract set", skip = true },
   { message = "^fix\\(docs\\): add the overrides block to the file", skip = true },
