@@ -24,8 +24,7 @@ trim = true
 [git]
 conventional_commits = true
 filter_unconventional = false
-# Only unprefixed `vX.Y.Z` tags mark releases; the legacy `sdk-v*` tags are not
-# release boundaries for the changelog.
+# Only unprefixed `vX.Y.Z` tags mark releases for the changelog.
 tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
 commit_parsers = [
   # The v0.1.0 freeze and its install-recipe fix ship in the v0.1.0 tag and
