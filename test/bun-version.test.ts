@@ -6,9 +6,14 @@ const root = join(import.meta.dir, '..');
 const pinned = readFileSync(join(root, '.bun-version'), 'utf8').trim();
 const workflows = globSync('.github/workflows/*.yml', { cwd: root });
 
-// Every workflow passed `bun-version: latest`, so an upstream release could
-// change the toolchain that lints, tests, and publishes this package with no
-// commit here. This file is the pin; these assertions keep it the only one.
+// `.bun-version` is the only place this repo names a Bun version. Workflows
+// that call a shared reusable inherit it, and any step invoking setup-bun
+// directly reads it through `bun-version-file`.
+//
+// setup-bun resolves `bun-version`, then `bun-version-file`, then package.json,
+// then `latest`. The package.json read is silent, so a pin that resolves to
+// nothing installs an arbitrary version while the job still reports success.
+// These assertions keep every path anchored to the file.
 describe('the Bun version is declared once, in the tree', () => {
   test('.bun-version holds a bare version', () => {
     expect(pinned).toMatch(/^\d+\.\d+\.\d+$/);
@@ -18,17 +23,17 @@ describe('the Bun version is declared once, in the tree', () => {
     expect(workflows.length).toBeGreaterThan(0);
     for (const file of workflows) {
       const wf = readFileSync(join(root, file), 'utf8');
+      // Matches any value, not just a digit: `latest` is the drift this exists
+      // to stop, and a digit-anchored pattern reads clean while it ships.
       expect(wf, `${file} must not pin a Bun version inline`).not.toMatch(/bun-version:\s*['"]?[\w.]/);
     }
   });
 
   test('every direct setup-bun step reads the file', () => {
-    // A step calling setup-bun with neither input falls through to
-    // package.json and then to `latest`, and that read is silent.
     for (const file of workflows) {
-      const wf = readFileSync(join(root, file), 'utf8').split('\n');
-      const steps = wf.filter((l) => l.includes('oven-sh/setup-bun')).length;
-      const reads = wf.filter((l) => l.includes('bun-version-file: .bun-version')).length;
+      const lines = readFileSync(join(root, file), 'utf8').split('\n');
+      const steps = lines.filter((l) => l.includes('oven-sh/setup-bun')).length;
+      const reads = lines.filter((l) => l.includes('bun-version-file: .bun-version')).length;
       expect(reads, `${file} has ${steps} setup-bun step(s) but ${reads} reading .bun-version`).toBe(steps);
     }
   });
@@ -40,9 +45,10 @@ describe('the Bun version is declared once, in the tree', () => {
   });
 
   test('the runtime running this suite is the pinned one', () => {
-    // Guards the split this pin exists to prevent: CI and local development on
-    // different Bun builds, disagreeing on emitted bytes while tests stay green.
-    // Resolve by installing the pinned version or bumping .bun-version.
+    // The only assertion that can see a split between the Bun CI installs and
+    // the Bun a developer builds with. A workflow-only check compares the
+    // workflows to each other, and they can be uniformly wrong. Resolve by
+    // installing the pinned version or bumping .bun-version deliberately.
     expect(Bun.version).toBe(pinned);
   });
 });
