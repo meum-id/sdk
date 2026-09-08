@@ -300,16 +300,15 @@ Rationale: [`RELEASES-RATIONALE.md` § Prose scrubbing scope](./RELEASES-RATIONA
 Two rulesets are committed under `.github/rulesets/` and applied to the repo via the GitHub API. They mirror what is
 live on `meum-id/sdk`:
 
-- `protect-main.json`: squash-only merges via PR, non-fast-forward blocked, deletion blocked. An owner `RepositoryRole`
+- `protect-main.json`: squash-only merges via PR, non-fast-forward blocked, deletion blocked, and the three guard
+  contexts (`guard-docs / check-forbidden-docs`, `guard-provenance / check-provenance`,
+  `guard-release / check-release-branch-name`) required, strict against the base branch. An owner `RepositoryRole`
   (id 5) break-glass bypass is configured, so an org-admin token can push directly when required.
 - `protect-dev.json`: deletion blocked, non-fast-forward blocked. The PR-only norm on `dev` is convention plus
   `guard-release-branch` on the `main` side.
 
-The `guard-main-docs`, `guard-main-provenance`, and `guard-release-branch` workflows run on every PR to `main` but are
-**not** required status checks yet (the CI and release workflows are skeletons until the build lands). Add the `ci /
-Lint, typecheck, test` context (and the guard contexts `guard-docs / check-forbidden-docs`, `guard-provenance /
-check-provenance`, `guard-release / check-release-branch-name`) to `protect-main.json` once the scaffolding is in place
-and the checks report reliably.
+The `ci / Lint, typecheck, test` context is not a required check yet. Add it to `protect-main.json` and re-apply the
+ruleset once the check reports reliably on every PR to `main`.
 
 ### Applying ruleset changes
 

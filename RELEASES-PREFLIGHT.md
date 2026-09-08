@@ -69,13 +69,16 @@ Security PRs, hotfixes, and config edits land on `main` first. The release branc
 `dev`'s tree, so anything `main` holds that `dev` never received is reverted by the release or collides with it, and
 Dependabot raises the same fix again.
 
+- [ ] The previous release's bookkeeping is on `dev` (gate 0): the root `package.json` and `CHANGELOG.md` as the last
+      tag left them are contained in `dev`'s copies. Gate 0 fails when the previous release's bookkeeping never reached
+      `dev`; run `scripts/sync-dev-after-release.sh v<version>` and merge its PR first.
 - [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
       `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
 - [ ] `.github/` is identical on both branches (gate 2), or every listed difference is a `dev`-side change this
       release ships. The gate fails either way; a `main`-only edit is drift and gets backported to `dev` by PR first.
-- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3). The gate reads `package-lock.json` and
-      `Cargo.lock` only; `bun.lock` is not parsed, so compare a `main`-side security bump by hand:
-      `git diff origin/dev origin/main -- bun.lock`.
+- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3). The gate parses `bun.lock` with `jq`,
+      which rejects the trailing commas Bun writes, so on this repo it reports zero packages either way; compare a
+      `main`-side security bump by hand: `git diff origin/dev origin/main -- bun.lock`.
 
 ### Green build (Biome + tsc + bun test)
 
