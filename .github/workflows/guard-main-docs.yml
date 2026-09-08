@@ -4,7 +4,7 @@
 # docs/reviews, and similar dev-only assets) from being merged into main.
 # Only needs pull-requests: read.
 #
-# The reusable is first-party (brettdavies/.github), so the caller tracks
+# The reusable is first-party (meum-id/.github), so the caller tracks
 # `@main`; the guarded set it enforces is what scripts/release/guarded-paths.sh
 # resolves locally, with `extra_paths` below read straight from this file.
 name: Guard main from engineering docs
@@ -21,7 +21,7 @@ env:
 
 jobs:
   guard-docs:
-    uses: brettdavies/.github/.github/workflows/guard-main-docs.yml@main
+    uses: meum-id/.github/.github/workflows/guard-main-docs.yml@main
     with:
       # Agent learnings and Lighthouse output stay on dev only. Entries are
       # globs: `**/` matches at any depth, a trailing slash guards the subtree.
