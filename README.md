@@ -148,7 +148,7 @@ bun test           # includes the <50KB gz bundle gate and Miniflare smoke test
 
 - `main` is the stable, published branch. It receives code only via PR from `release/*` branches.
 - `dev` is the forever integration branch. Feature branches cut from `dev`, PR back to `dev` (squash merge).
-- Release branches cut from `origin/main`, cherry-pick the non-docs commits from `dev`, then PR to `main`.
+- Release branches cut from `origin/main`, overlay `dev`'s tree minus the guarded engineering paths, then PR to `main`.
 - Client freezes are annotated `vX.Y.Z` tags on `main`, cut through `release/*` branches per the runbook. A tag push
   triggers `release.yml`, which publishes each package to npm and requires the `NPM_TOKEN` secret (or npm trusted
   publishing / OIDC); a cut without the token fails the publish job rather than no-opping. `@meum/contracts` publishes

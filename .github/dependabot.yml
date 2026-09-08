@@ -1,14 +1,29 @@
 # Dependabot configuration.
 #
-# Two ecosystems: npm for the workspace package dependencies, github-actions
-# for workflow actions. Both scan weekly on Monday mornings. npm minor + patch
-# updates group into one PR per week; major updates open individually because
-# they need review.
+# Two ecosystems: npm for the Bun workspace package dependencies,
+# github-actions for workflow actions. Both scan weekly on Monday mornings.
+# Each version-update block batches every minor and patch into one PR per
+# week and ignores majors outright: a major bump (a TypeScript 5.x -> 7.x
+# migration, for instance) is a reviewed change, never an automatic PR. The
+# github-actions group uses `patterns` rather than `update-types` because a
+# SHA pin's SemVer level comes from a trailing comment and an unclassifiable
+# action would otherwise fall out of the group and open alone.
 #
-# `target-branch: dev` is non-negotiable on every ecosystem block. Without it,
-# Dependabot defaults to `main` and the PR fails the dev -> release/* -> main
-# flow that guard-release-branch.yml enforces. Retargeting after the fact
-# orphans-and-closes the PR irreversibly.
+# `target-branch: dev` is non-negotiable on every version-update block.
+# Without it, Dependabot defaults to `main` and the PR fails the dev ->
+# release/* -> main flow that guard-release-branch.yml enforces. Retargeting
+# after the fact orphans-and-closes the PR irreversibly.
+#
+# Security updates are the exception: Dependabot raises them against the
+# default branch and ignores every option on a block that carries
+# `target-branch`, so without a block of their own each advisory becomes its
+# own ungrouped PR on main. The trailing npm block has no target-branch,
+# `open-pull-requests-limit: 0` so it never opens version updates there, and
+# a group with `applies-to: security-updates` that batches minor and patch
+# fixes per run. A fix that needs a major stays its own PR. Cooldown and the
+# majors ignore are deliberately absent from it: cooldown is a version-update
+# option, and the ignore would suppress a fix that resolves outside the
+# current range.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -21,22 +36,21 @@ updates:
       timezone: America/Chicago
     cooldown:
       default-days: 7
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
     reviewers:
       - brettdavies
     labels:
       - dependencies
+      - typescript
     groups:
       npm-minor-patch:
         update-types:
           - minor
           - patch
     ignore:
-      # A TypeScript major (5.x -> 7.x) is a reviewed migration, never an
-      # automatic bump; the caret range already blocks it, this stops the PR.
-      - dependency-name: "typescript"
+      - dependency-name: "*"
         update-types:
-          - "version-update:semver-major"
+          - version-update:semver-major
   - package-ecosystem: github-actions
     directory: "/"
     target-branch: dev
@@ -53,3 +67,28 @@ updates:
     labels:
       - dependencies
       - github-actions
+    groups:
+      actions-minor-patch:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Chicago
+    open-pull-requests-limit: 0
+    labels:
+      - dependencies
+      - security
+    groups:
+      npm-security-minor-patch:
+        applies-to: security-updates
+        update-types:
+          - minor
+          - patch

@@ -4,8 +4,9 @@
 # docs/reviews, and similar dev-only assets) from being merged into main.
 # Only needs pull-requests: read.
 #
-# The reusable ref is SHA-pinned; the trailing comment records the branch and
-# resolution date. Refresh recipe: `gh api repos/brettdavies/.github/commits/main --jq .sha`.
+# The reusable is first-party (meum-id/.github), so the caller tracks
+# `@main`; the guarded set it enforces is what scripts/release/guarded-paths.sh
+# resolves locally, with `extra_paths` below read straight from this file.
 name: Guard main from engineering docs
 
 on:
@@ -20,7 +21,8 @@ env:
 
 jobs:
   guard-docs:
-    uses: brettdavies/.github/.github/workflows/guard-main-docs.yml@c8aaed5b969713355efe6fa2914feb732d91268d # main as of 2026-07-09
+    uses: meum-id/.github/.github/workflows/guard-main-docs.yml@main
     with:
-      # Agent learnings and Lighthouse output stay on dev only.
+      # Agent learnings and Lighthouse output stay on dev only. Entries are
+      # globs: `**/` matches at any depth, a trailing slash guards the subtree.
       extra_paths: '**/.agent/,**/.lighthouseci/'

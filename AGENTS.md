@@ -59,8 +59,8 @@ hooks and CI rather than replacing them:
 - **Hooks** (`scripts/hooks/pre-commit`, `scripts/hooks/pre-push`) mirror CI locally and no-op until `package.json`
   exists. Activate with `git config core.hooksPath scripts/hooks`.
 - **Release quad** (`RELEASES.md`, `RELEASES-RATIONALE.md`, `RELEASES-PREFLIGHT.md`, `RELEASES-POSTFLIGHT.md`) plus
-  `scripts/generate-changelog.py` and `scripts/sync-dev-after-release.sh` govern the cut. Do not invent a parallel
-  release path.
+  `scripts/release/` (drift, guarded-path, preflight, and postflight gates), `scripts/generate-changelog.py`, and
+  `scripts/sync-dev-after-release.sh` govern the cut. Do not invent a parallel release path.
 
 Do not recreate governance files (`CODEOWNERS`, `.github/dependabot.yml`, `.github/pull_request_template.md`,
 `.markdownlint-cli2.yaml`, the guard workflows, or the rulesets under `.github/rulesets/`).
@@ -69,10 +69,12 @@ Do not recreate governance files (`CODEOWNERS`, `.github/dependabot.yml`, `.gith
 
 - `main`: stable, published. Receives code only via PR from `release/*`.
 - `dev`: forever integration branch. Feature branches cut from `dev`, PR back to `dev` (squash merge).
-- `release/vX.Y.Z`: cut from `origin/main`, cherry-pick the non-docs commits from `dev`, PR to `main`.
-- Engineering docs (`docs/plans/`, `docs/solutions/`, `docs/brainstorms/`, `docs/reviews/`) live on `dev` only.
-  `guard-main-docs.yml` blocks them from `main`, and `guard-release-branch.yml` rejects any PR to `main` whose head is
-  not `release/*`.
+- `release/vX.Y.Z`: cut from `origin/main`, overlay `dev`'s tree minus the guarded engineering paths, PR to `main`.
+- Engineering docs (`docs/plans/`, `docs/solutions/`, `docs/brainstorms/`, `docs/reviews/`) and the registered
+  `extra_paths` (`.agent/`, `.lighthouseci/`) live on `dev` only. `guard-main-docs.yml` blocks them from `main`,
+  `guard-main-provenance.yml` rejects commits that did not arrive through a squash-merged PR to `dev`, and
+  `guard-release-branch.yml` rejects any PR to `main` whose head is not `release/*`. `scripts/release/guarded-paths.sh`
+  prints the full guarded set.
 
 ## Releasing
 

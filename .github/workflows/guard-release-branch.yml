@@ -7,8 +7,9 @@
 # Default prefix `release/` is supplied by the reusable workflow; pass
 # `with: prefix: <other>` to override.
 #
-# The reusable ref is SHA-pinned; the trailing comment records the branch and
-# resolution date. Refresh recipe: `gh api repos/brettdavies/.github/commits/main --jq .sha`.
+# The reusable is first-party (meum-id/.github), so the caller tracks
+# `@main`. The job key must stay `guard-release:` so the status check context
+# is `guard-release / check-release-branch-name`.
 name: Guard release branch pattern
 
 on:
@@ -23,4 +24,4 @@ env:
 
 jobs:
   guard-release:
-    uses: brettdavies/.github/.github/workflows/guard-release-branch.yml@c22bf91089fc83a82f641aa6b1ea6ff223d8d3e1 # main as of 2026-07-06
+    uses: meum-id/.github/.github/workflows/guard-release-branch.yml@main
