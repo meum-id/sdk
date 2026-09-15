@@ -1,3 +1,8 @@
+<!-- Reference scope: name only meum-id repositories, issues, and PRs anywhere in this body. Do not cite a repository
+     outside the meum-id org, its issues or PRs, or a path inside personal or third-party tooling. When an external
+     rule or convention motivates the change, state the rule in its own terms rather than citing where it lives.
+     This applies to every section below, including Related Issues/Stories and Testing. -->
+
 ## Summary
 
 <!-- Provide a brief overview of the changes in this PR. What feature/fix/improvement does this introduce?
