@@ -54,7 +54,8 @@ if ! git rev-parse --verify --quiet "refs/tags/$VERSION" >/dev/null; then
 fi
 
 # Verify main is at or past the tag (i.e. release/* actually merged).
-TAG_SHA="$(git rev-parse "$VERSION")"
+# Peeled, since an annotated tag names a tag object, not the released commit.
+TAG_SHA="$(git rev-parse "$VERSION^{commit}")"
 if ! git merge-base --is-ancestor "$TAG_SHA" origin/main; then
   echo "error: tag $VERSION is not reachable from origin/main -- wait for release/v* to merge" >&2
   exit 66
@@ -116,7 +117,10 @@ SYNC_FILES=(
 
 git checkout origin/main -- "${SYNC_FILES[@]}"
 
-if git diff --quiet -- "${SYNC_FILES[@]}"; then
+# `git checkout origin/main -- FILE` stages the file, so `git diff --quiet`
+# (worktree against index) never sees that change and would report "no
+# changes" for every release. Compare the index against HEAD instead.
+if [[ -z "$(git status --porcelain -- "${SYNC_FILES[@]}")" ]] && git diff --cached --quiet; then
   echo "no changes -- dev already in sync with $VERSION"
   git switch dev
   git branch -D "$SYNC_BRANCH"
@@ -140,18 +144,25 @@ main: CHANGELOG.md, cliff.toml, the version-bearing manifests, and
 bun.lock copied verbatim from origin/main."
 
 # Post-sync sanity check: re-running generate-changelog.py against the current
-# PR bodies should produce an identical CHANGELOG.md. Drift here means upstream
-# PR bodies were edited after main's CHANGELOG.md was generated -- the
-# backport brought the stale CHANGELOG over, and a future release-branch
-# regen will surface unexpected diffs. Warn, do not fail; the backport is
-# still correct against what main currently has.
+# PR bodies should produce an identical CHANGELOG.md. It fails when upstream PR
+# bodies were edited after main's CHANGELOG.md was generated, when something
+# rewrapped the generated file, or when the generator cannot run at all, and
+# only the generator knows which, so its own reason line is what the warning
+# carries. Warn, do not fail; the backport is still correct against what main
+# currently has.
+#
+# The reason is the generator's `DRY RUN:` or `error:` line, else its last
+# line, since a crash's traceback ends with the exception.
+regen_reason() {
+  awk '/^(DRY RUN|error):/ { print; found = 1; exit } NF { last = $0 } END { if (!found) print last }'
+}
+
 if [[ -x scripts/generate-changelog.py ]] && command -v git-cliff >/dev/null 2>&1; then
-  if scripts/generate-changelog.py --dry-run --tag "$VERSION" >/dev/null 2>&1; then
+  if regen_err="$(scripts/generate-changelog.py --dry-run --tag "$VERSION" 2>&1 >/dev/null)"; then
     echo "regen check: CHANGELOG.md matches what PR bodies would produce"
   else
-    echo "warning: PR bodies have drifted from main's CHANGELOG.md for $VERSION" >&2
-    echo "  re-run 'scripts/generate-changelog.py --dry-run --tag $VERSION' to see the diff" >&2
-    echo "  fix by regenerating CHANGELOG.md on a follow-up release branch" >&2
+    echo "warning: regen check did not pass for $VERSION: $(regen_reason <<<"$regen_err")" >&2
+    echo "  re-run 'scripts/generate-changelog.py --dry-run --tag $VERSION' for its full output" >&2
   fi
 fi
 
