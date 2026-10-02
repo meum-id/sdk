@@ -366,6 +366,11 @@ Each scoped package's first publish must set public access (`"publishConfig": {"
 `package.json`, or `npm publish --access public`). A first publish under a new scope also requires the `@meum` org to
 exist on npm and the automation token to have publish rights to it.
 
+### Cherry-pick releases
+
+- A change that takes effect only from `main`, such as `.github/dependabot.yml` (Dependabot reads its config from the
+  default branch), may ship by cherry-pick ahead of the next overlay release, so unreleased `dev` work stays on `dev`.
+
 ## Related docs
 
 - [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md): pre-cut go/no-go checklist gating release-branch creation.
