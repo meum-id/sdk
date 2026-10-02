@@ -1,32 +1,45 @@
 # Dependabot configuration.
 #
-# Two ecosystems: npm for the Bun workspace package dependencies,
-# github-actions for workflow actions. Both scan weekly on Monday mornings.
-# Each version-update block batches every minor and patch into one PR per
-# week and ignores majors outright: a major bump (a TypeScript 5.x -> 7.x
-# migration, for instance) is a reviewed change, never an automatic PR. The
-# github-actions group uses `patterns` rather than `update-types` because a
-# SHA pin's SemVer level comes from a trailing comment and an unclassifiable
-# action would otherwise fall out of the group and open alone.
+# Two `target-branch: dev` blocks (bun for the Bun workspace package
+# dependencies, github-actions for workflow actions) handle version updates:
+# weekly on Monday mornings, 7-day cooldown so a just-published version has
+# to survive a week before Dependabot proposes it, every minor + patch
+# batched into one PR per ecosystem per week. The wildcard `ignore` holds
+# majors outright: a major bump (a TypeScript 5.x -> 7.x migration, for
+# instance) is a reviewed change, never an automatic PR. The bun block also
+# holds every version update of bun-types, which moves only with the Bun
+# runtime pinned in .bun-version; a test holds the two together.
 #
-# `target-branch: dev` is non-negotiable on every version-update block.
-# Without it, Dependabot defaults to `main` and the PR fails the dev ->
-# release/* -> main flow that guard-release-branch.yml enforces. Retargeting
-# after the fact orphans-and-closes the PR irreversibly.
+# The `bun` ecosystem regenerates bun.lock inside each update PR; the `npm`
+# ecosystem refuses a project that carries bun.lock.
 #
-# Security updates are the exception: Dependabot raises them against the
-# default branch and ignores every option on a block that carries
-# `target-branch`, so without a block of their own each advisory becomes its
-# own ungrouped PR on main. The trailing npm block has no target-branch,
-# `open-pull-requests-limit: 0` so it never opens version updates there, and
-# a group with `applies-to: security-updates` that batches minor and patch
-# fixes per run. A fix that needs a major stays its own PR. Cooldown and the
-# majors ignore are deliberately absent from it: cooldown is a version-update
-# option, and the ignore would suppress a fix that resolves outside the
-# current range.
+# The bun updater writes bun.lock with the Bun its image bundles, which can
+# differ from the repo's pinned Bun, and it cannot read the lockfileVersion 2
+# that a from-scratch Bun 1.4 install writes
+# (https://github.com/dependabot/dependabot-core/issues/16026). Keep bun.lock
+# at lockfileVersion 1. When CI's frozen install rejects a Dependabot lockfile,
+# run `bun install` with the pinned Bun on the PR branch and push.
+#
+# Dependabot opens no security updates for Bun, and its alerts cover only the
+# direct dependencies in package.json: the dependency graph does not read
+# bun.lock. `bun audit` checks the whole lockfile. Fix an advisory by bumping
+# the dependency by hand and running `bun install`.
+# https://docs.github.com/en/code-security/dependabot/ecosystems-supported-by-dependabot/supported-ecosystems-and-repositories#bun
+#
+# `target-branch: dev` is non-negotiable on every block. Without it,
+# Dependabot defaults to `main` and the PR fails the dev -> release/* -> main
+# flow that guard-release-branch.yml enforces. Dependabot reads this config
+# from the default branch, which is main, so an edit here only takes effect
+# once it reaches main. Do not flip `target-branch` on a live block:
+# retargeting orphans-and-closes any open PR.
+#
+# The github-actions group uses `patterns` rather than `update-types`: the
+# ignore rule already drops majors, so `*` is exactly minor + patch and does
+# not depend on Dependabot inferring a SemVer level from a SHA pin's trailing
+# comment.
 version: 2
 updates:
-  - package-ecosystem: npm
+  - package-ecosystem: bun
     directory: "/"
     target-branch: dev
     schedule:
@@ -37,8 +50,6 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 1
-    reviewers:
-      - brettdavies
     labels:
       - dependencies
       - typescript
@@ -51,6 +62,7 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-major
+      - dependency-name: "bun-types"
   - package-ecosystem: github-actions
     directory: "/"
     target-branch: dev
@@ -62,8 +74,6 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 3
-    reviewers:
-      - brettdavies
     labels:
       - dependencies
       - github-actions
@@ -75,20 +85,3 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-major
-  - package-ecosystem: npm
-    directory: "/"
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: America/Chicago
-    open-pull-requests-limit: 0
-    labels:
-      - dependencies
-      - security
-    groups:
-      npm-security-minor-patch:
-        applies-to: security-updates
-        update-types:
-          - minor
-          - patch
