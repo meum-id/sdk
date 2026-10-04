@@ -7,9 +7,10 @@
 # Default prefix `release/` is supplied by the reusable workflow; pass
 # `with: prefix: <other>` to override.
 #
-# The reusable is first-party (meum-id/.github), so the caller tracks
-# `@main`. The job key must stay `guard-release:` so the status check context
-# is `guard-release / check-release-branch-name`.
+# This repository is public, and GitHub refuses a public repository's call into
+# a workflow in a private one, so the caller uses the public copy of the
+# reusable, pinned to a commit. The job key must stay `guard-release:` so the
+# status check context is `guard-release / check-release-branch-name`.
 name: Guard release branch pattern
 
 on:
@@ -24,4 +25,4 @@ env:
 
 jobs:
   guard-release:
-    uses: meum-id/.github/.github/workflows/guard-release-branch.yml@main
+    uses: brettdavies/.github/.github/workflows/guard-release-branch.yml@5f0b2c5aa471e193a696f829fc371ddc46dbaae8 # main as of 2026-10-04
