@@ -1,0 +1,24 @@
+# Caller for the centralized guard-main-provenance reusable workflow.
+#
+# Verifies every commit in a PR to main came from a squash-merged PR to dev
+# (carries a `(#N)` reference). Only needs pull-requests: read.
+#
+# This repository is public, and GitHub refuses a public repository's call into
+# a workflow in a private one, so the caller uses the public copy of the
+# reusable, pinned to a commit. The job key must stay `guard-provenance:` so
+# the status check context is `guard-provenance / check-provenance`.
+name: Guard main commit provenance
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  guard-provenance:
+    uses: brettdavies/.github/.github/workflows/guard-main-provenance.yml@5f0b2c5aa471e193a696f829fc371ddc46dbaae8 # main as of 2026-10-04
