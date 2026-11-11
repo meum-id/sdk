@@ -1,0 +1,24 @@
+# Caller for the centralized pr-cache-cleanup reusable workflow.
+#
+# Deletes a closed pull request's Actions caches under refs/pull/<n>/merge,
+# which only that pull request's runs can read. Needs actions: write.
+#
+# This repository is public, and GitHub refuses a public repository's call into
+# a workflow in a private one, so the caller uses the public copy of the
+# reusable, pinned to a commit.
+name: PR cache cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions: {}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  cleanup:
+    permissions:
+      actions: write
+    uses: brettdavies/.github/.github/workflows/pr-cache-cleanup.yml@d938a1e54df668d1632ad87999f67e27965becd2 # main as of 2026-11-11
